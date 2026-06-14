@@ -127,19 +127,58 @@ function getYearGanji(year, dateStr) {
   return { gan: g[0], ji: g[1] };
 }
 
+// ── 절기 날짜 수식 계산 (DB 없이 모든 연도 처리) ─────────────
+// 수경식(壽星萬年曆) 절기 근사 공식: day = floor(Y*0.2422 + B) - floor(Y/4), Y=year-1900
+const SOLAR_TERM_PARAMS = {
+  '소한': [1,  6.11], '대한': [1, 20.84],
+  '입춘': [2,  4.60], '우수': [2, 19.40],
+  '경칩': [3,  6.18], '춘분': [3, 20.90],
+  '청명': [4,  5.15], '곡우': [4, 20.65],
+  '입하': [5,  6.13], '소만': [5, 21.37],
+  '망종': [6,  6.43], '하지': [6, 21.92],
+  '소서': [7,  7.62], '대서': [7, 23.15],
+  '입추': [8,  8.35], '처서': [8, 23.95],
+  '백로': [9,  8.44], '추분': [9, 23.42],
+  '한로': [10, 8.90], '상강': [10,23.90],
+  '입동': [11, 8.11], '소설': [11,22.94],
+  '대설': [12, 7.69], '동지': [12,22.38],
+};
+
+function getSolarTermDate(termName, year) {
+  // DB에 있으면 DB 우선 사용
+  const dbEntry = (DB.solar || []).find(t => t.name === termName && t.date?.startsWith(String(year)));
+  if (dbEntry) return dbEntry.date;
+  // DB에 없으면 수식으로 계산 (1900~2100 유효)
+  const p = SOLAR_TERM_PARAMS[termName];
+  if (!p) return null;
+  const Y = year - 1900;
+  const [mon, B] = p;
+  const day = Math.floor(Y * 0.2422 + B) - Math.floor(Y / 4);
+  return `${year}-${String(mon).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+
 // ── 월주 계산 ─────────────────────────────────────────────────
 function getMonthGanji(year, dateStr, yearGan) {
-  const terms = (DB.solar || [])
-    .filter(t => MONTH_TERMS.includes(t.name) && t.date)
-    .filter(t => { const y = parseInt(t.date); return y >= year - 1 && y <= year + 1; })
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const targetDate = new Date(dateStr);
 
-  let monthNo = 0;
-  for (let i = terms.length - 1; i >= 0; i--) {
-    if (new Date(terms[i].date) <= new Date(dateStr)) {
-      monthNo = MONTH_TERMS.indexOf(terms[i].name); break;
+  // 검색 범위: 전년~당년+1 (소한이 1월 초이므로 연도 경계 처리)
+  const candidates = [];
+  for (const termName of MONTH_TERMS) {
+    for (const y of [year - 1, year, year + 1]) {
+      const d = getSolarTermDate(termName, y);
+      if (d) candidates.push({ name: termName, date: d });
     }
   }
+  candidates.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  let monthNo = 0;
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    if (new Date(candidates[i].date) <= targetDate) {
+      monthNo = MONTH_TERMS.indexOf(candidates[i].name);
+      break;
+    }
+  }
+
   const ganArr = MONTH_GAN_MAP[yearGan] || MONTH_GAN_MAP['甲'];
   return { gan: ganArr[monthNo], ji: MONTH_JI[monthNo] };
 }
