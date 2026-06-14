@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>정보 입력 — 하락이수</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a href="index.html" class="site-logo">河洛理數</a>
+  <nav class="site-nav">
+    <a href="index.html">← 홈</a>
+    <a href="gua-dictionary.html">64괘 사전</a>
+    <a href="guide.html">로드맵</a>
+  </nav>
+</header>
+
+<div class="container-sm">
+
+  <!-- 스텝 바 -->
+  <div id="step-bar" style="display:flex;gap:8px;margin-bottom:40px;">
+    <div class="step-bar-item" style="flex:1;height:4px;border-radius:2px;background:var(--accent);transition:background .3s;"></div>
+    <div class="step-bar-item" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s;"></div>
+    <div class="step-bar-item" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s;"></div>
+    <div class="step-bar-item" style="flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s;"></div>
+  </div>
+
+  <p id="step-label" style="color:var(--text-muted);font-size:0.8rem;margin-bottom:8px;">STEP 1 / 4</p>
+
+  <!-- STEP 0: 성별 -->
+  <div id="step-0" class="step-panel fade-up">
+    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">성별을 선택해주세요</h2>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:32px;">
+      하락이수는 남녀에 따라 우주 기운의 방향이 달라 완전히 다른 괘가 도출됩니다.
+    </p>
+    <div style="display:flex;gap:16px;">
+      <button class="gender-btn" data-val="male" onclick="selectGender('male')"
+        style="flex:1;padding:24px 0;border-radius:14px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:1.1rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;">
+        👨 남성
+      </button>
+      <button class="gender-btn" data-val="female" onclick="selectGender('female')"
+        style="flex:1;padding:24px 0;border-radius:14px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:1.1rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;">
+        👩 여성
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 1: 생년월일 -->
+  <div id="step-1" class="step-panel" style="display:none;">
+    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">생년월일을 입력해주세요</h2>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px;">양력으로 입력해주세요.</p>
+
+    <div style="display:flex;gap:12px;margin-bottom:20px;">
+      <div style="flex:2;">
+        <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:6px;">년</label>
+        <input type="number" id="inp-year" placeholder="예) 1985" min="1930" max="2010">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:6px;">월</label>
+        <input type="number" id="inp-month" placeholder="1~12" min="1" max="12">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:6px;">일</label>
+        <input type="number" id="inp-day" placeholder="1~31" min="1" max="31">
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: 시각 -->
+  <div id="step-2" class="step-panel" style="display:none;">
+    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">태어난 시각을 선택해주세요</h2>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px;">모르시면 "모름"을 선택하세요.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;" id="hour-list"></div>
+  </div>
+
+  <!-- STEP 3: 확인 -->
+  <div id="step-3" class="step-panel" style="display:none;">
+    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">입력 내용을 확인해주세요</h2>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px;">아래 정보로 하락이수를 계산합니다.</p>
+    <div class="card" id="confirm-box" style="display:flex;flex-direction:column;gap:16px;"></div>
+  </div>
+
+  <!-- 에러 -->
+  <p id="err-msg" style="color:#f87171;font-size:0.85rem;margin-top:14px;display:none;"></p>
+
+  <!-- 버튼 -->
+  <div style="display:flex;gap:12px;margin-top:36px;">
+    <button id="btn-prev" onclick="prevStep()"
+      style="display:none;padding:14px 24px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:1rem;font-family:inherit;">
+      이전
+    </button>
+    <button id="btn-next" onclick="nextStep()"
+      style="flex:1;padding:14px 0;border-radius:10px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:1rem;font-weight:700;font-family:inherit;">
+      다음
+    </button>
+  </div>
+</div>
+
+<script>
+const HOURS = [
+  { label:'모름 (12시로 처리)', val:12 },
+  { label:'자시 (23:00~01:00)', val:0 },
+  { label:'축시 (01:00~03:00)', val:1 },
+  { label:'인시 (03:00~05:00)', val:3 },
+  { label:'묘시 (05:00~07:00)', val:5 },
+  { label:'진시 (07:00~09:00)', val:7 },
+  { label:'사시 (09:00~11:00)', val:9 },
+  { label:'오시 (11:00~13:00)', val:11 },
+  { label:'미시 (13:00~15:00)', val:13 },
+  { label:'신시 (15:00~17:00)', val:15 },
+  { label:'유시 (17:00~19:00)', val:17 },
+  { label:'술시 (19:00~21:00)', val:19 },
+  { label:'해시 (21:00~23:00)', val:21 },
+];
+
+let state = { step: 0, gender: '', year: '', month: '', day: '', hour: 12 };
+
+// 시각 버튼 렌더
+const hourList = document.getElementById('hour-list');
+HOURS.forEach(h => {
+  const btn = document.createElement('button');
+  btn.textContent = h.label;
+  btn.dataset.val = h.val;
+  btn.style.cssText = 'padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:0.95rem;text-align:left;font-family:inherit;transition:all .15s;';
+  btn.onclick = () => {
+    state.hour = h.val;
+    document.querySelectorAll('#hour-list button').forEach(b => {
+      b.style.borderColor = 'var(--border)';
+      b.style.background  = 'var(--surface)';
+      b.style.color       = 'var(--text)';
+    });
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.background  = 'rgba(124,58,237,0.15)';
+    btn.style.color       = 'var(--accent-light)';
+  };
+  hourList.appendChild(btn);
+});
+// 기본값 모름 선택
+hourList.querySelector('button').click();
+
+function selectGender(g) {
+  state.gender = g;
+  document.querySelectorAll('.gender-btn').forEach(b => {
+    const sel = b.dataset.val === g;
+    b.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
+    b.style.background  = sel ? 'rgba(124,58,237,0.15)' : 'var(--surface)';
+    b.style.color       = sel ? 'var(--accent-light)' : 'var(--text)';
+  });
+}
+
+function showErr(msg) {
+  const el = document.getElementById('err-msg');
+  el.textContent = msg; el.style.display = 'block';
+}
+function hideErr() { document.getElementById('err-msg').style.display = 'none'; }
+
+function validate() {
+  if (state.step === 0 && !state.gender) return '성별을 선택해주세요.';
+  if (state.step === 1) {
+    const y = Number(document.getElementById('inp-year').value);
+    const m = Number(document.getElementById('inp-month').value);
+    const d = Number(document.getElementById('inp-day').value);
+    if (!y || y < 1930 || y > 2010) return '출생 연도를 확인해주세요. (1930~2010)';
+    if (!m || m < 1 || m > 12)       return '월을 확인해주세요.';
+    if (!d || d < 1 || d > 31)       return '일을 확인해주세요.';
+    state.year = y; state.month = m; state.day = d;
+  }
+  return '';
+}
+
+function updateStepBar() {
+  const bars = document.querySelectorAll('.step-bar-item');
+  bars.forEach((b, i) => b.style.background = i <= state.step ? 'var(--accent)' : 'var(--border)');
+  document.getElementById('step-label').textContent = `STEP ${state.step + 1} / 4`;
+  document.getElementById('btn-prev').style.display = state.step > 0 ? 'block' : 'none';
+  document.getElementById('btn-next').textContent   = state.step === 3 ? '풀이 시작 →' : '다음';
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.style.display = 'none');
+  const panel = document.getElementById(`step-${n}`);
+  panel.style.display = 'block';
+  panel.classList.remove('fade-up');
+  void panel.offsetWidth;
+  panel.classList.add('fade-up');
+}
+
+function buildConfirm() {
+  const HOUR_LABEL = HOURS.find(h => h.val === state.hour)?.label || '';
+  document.getElementById('confirm-box').innerHTML = [
+    ['성별', state.gender === 'male' ? '남성' : '여성'],
+    ['생년월일', `${state.year}년 ${state.month}월 ${state.day}일 (양력)`],
+    ['태어난 시각', HOUR_LABEL],
+  ].map(([k,v]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="color:var(--text-muted);font-size:0.9rem;">${k}</span>
+      <span style="font-weight:600;">${v}</span>
+    </div>`).join('');
+}
+
+function nextStep() {
+  const err = validate();
+  if (err) { showErr(err); return; }
+  hideErr();
+  if (state.step === 3) { submit(); return; }
+  state.step++;
+  if (state.step === 3) buildConfirm();
+  showStep(state.step);
+  updateStepBar();
+}
+
+function prevStep() {
+  if (state.step === 0) return;
+  state.step--;
+  showStep(state.step);
+  updateStepBar();
+  hideErr();
+}
+
+function submit() {
+  const p = new URLSearchParams({
+    gender: state.gender,
+    year:   state.year,
+    month:  state.month,
+    day:    state.day,
+    hour:   state.hour,
+  });
+  location.href = `result.html?${p.toString()}`;
+}
+
+updateStepBar();
+</script>
+</body>
+</html>

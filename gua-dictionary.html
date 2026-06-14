@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>64괘 사전 — 하락이수</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    #gua-list { display:flex;flex-direction:column;gap:4px;max-height:calc(100vh - 240px);overflow-y:auto; }
+    .gua-item { display:flex;gap:12px;align-items:center;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit;width:100%; }
+    .gua-item:hover,.gua-item.active { border-color:var(--accent);background:rgba(124,58,237,.15); }
+    .gua-item.active .gua-name { color:var(--accent-light); }
+    .gua-name { font-weight:600;font-size:.88rem;color:var(--text); }
+    .gua-no   { font-size:.62rem;color:var(--text-muted);margin-bottom:1px; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="index.html" class="site-logo">河洛理數</a>
+  <nav class="site-nav">
+    <a href="input.html">풀이 시작 →</a>
+    <a href="guide.html">로드맵</a>
+  </nav>
+</header>
+
+<div style="max-width:1100px;margin:0 auto;padding:32px 20px;display:flex;gap:24px;align-items:flex-start;">
+
+  <!-- 왼쪽 목록 -->
+  <div style="width:260px;flex-shrink:0;">
+    <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:14px;">64괘 사전</h1>
+    <input type="text" id="search-inp" placeholder="괘 이름 또는 번호 검색..."
+      style="margin-bottom:10px;" oninput="filterList(this.value)">
+    <div id="gua-list"></div>
+  </div>
+
+  <!-- 오른쪽 상세 -->
+  <div id="detail" style="flex:1;min-width:0;">
+    <div style="text-align:center;padding:80px 0;color:var(--text-muted);">
+      <div style="font-size:3rem;margin-bottom:16px;">☯</div>
+      <p>왼쪽에서 괘를 선택하면 상세 정보가 표시됩니다.</p>
+      <p style="font-size:.85rem;margin-top:8px;">총 64괘 · 384효 수록</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/harakisu.js"></script>
+<script>
+const GUA_LINES = Harakisu.GUA_LINES;
+
+function miniYao(lines=[]) {
+  let html = '<div style="display:flex;flex-direction:column-reverse;gap:2px;">';
+  lines.forEach(v => {
+    if (v===1) html += `<div style="width:24px;height:8px;background:var(--accent-light);border-radius:2px;"></div>`;
+    else html += `<div style="display:flex;gap:2px;"><div style="width:10px;height:8px;background:var(--accent-light);border-radius:2px;"></div><div style="width:4px;"></div><div style="width:10px;height:8px;background:var(--accent-light);border-radius:2px;"></div></div>`;
+  });
+  return html + '</div>';
+}
+
+function largeYao(lines=[], highlightPos=null) {
+  let html = '<div style="display:flex;flex-direction:column-reverse;gap:5px;">';
+  lines.forEach((v,i) => {
+    const pos = i+1, hl = highlightPos===pos;
+    const color = hl ? 'var(--gold)' : 'var(--accent-light)';
+    const arrow = hl ? `<span style="font-size:.62rem;color:var(--gold);margin-left:4px;">←</span>` : '';
+    html += `<div style="display:flex;gap:4px;align-items:center;">
+      <span style="font-size:.62rem;color:var(--text-muted);width:14px;text-align:right;">${pos}</span>`;
+    if (v===1) html += `<div style="width:52px;height:18px;background:${color};border-radius:3px;"></div>`;
+    else html += `<div style="width:22px;height:18px;background:${color};border-radius:3px;"></div><div style="width:8px;"></div><div style="width:22px;height:18px;background:${color};border-radius:3px;"></div>`;
+    html += `${arrow}</div>`;
+  });
+  return html + '</div>';
+}
+
+let guaDB = {}, yaoDB = {}, allEntries = [];
+
+async function init() {
+  await Harakisu.loadDB();
+  guaDB = Harakisu.DB.dansa;
+  yaoDB = Harakisu.DB.yao;
+  allEntries = Object.entries(guaDB).map(([no,g])=>({no:Number(no),...g}));
+  renderList(allEntries);
+}
+
+function renderList(entries) {
+  const list = document.getElementById('gua-list');
+  list.innerHTML = entries.map(g => `
+    <button class="gua-item" id="item-${g.no}" onclick="showDetail(${g.no})">
+      ${miniYao(GUA_LINES[g.no]||[])}
+      <div>
+        <div class="gua-no">${g.no}번</div>
+        <div class="gua-name">${g.name}</div>
+      </div>
+    </button>`).join('');
+}
+
+function filterList(q) {
+  const filtered = allEntries.filter(g =>
+    !q || g.name?.includes(q) || String(g.no)===q
+  );
+  renderList(filtered);
+}
+
+function showDetail(no) {
+  document.querySelectorAll('.gua-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`item-${no}`)?.classList.add('active');
+
+  const g   = guaDB[no]  || {};
+  const yao = yaoDB[no]  || {};
+  const lines = GUA_LINES[no] || [];
+
+  const rows = [
+    ['괘사(卦辭)', g.dansa],
+    ['상전(象傳)', g.sangjeon],
+    ['실용 해석',  g.practical],
+    ['주의사항',   g.caution],
+  ].filter(r=>r[1]).map(([k,v])=>`
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+      <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px;">${k}</p>
+      <p style="line-height:1.85;">${v}</p>
+    </div>`).join('');
+
+  const yaoRows = [6,5,4,3,2,1].map(pos => {
+    const y = yao.lines?.[pos] || yao.lines?.[String(pos)];
+    if (!y) return '';
+    const lineVal = lines[pos-1];
+    const lineHtml = lineVal===1
+      ? `<div style="width:36px;height:12px;background:var(--accent-light);border-radius:2px;"></div>`
+      : `<div style="display:flex;gap:3px;"><div style="width:15px;height:12px;background:var(--accent-light);border-radius:2px;"></div><div style="width:6px;"></div><div style="width:15px;height:12px;background:var(--accent-light);border-radius:2px;"></div></div>`;
+    return `
+      <div style="${pos<6?'border-top:1px solid var(--border);padding-top:14px;margin-top:14px;':''}display:flex;gap:14px;">
+        <div style="flex-shrink:0;padding-top:2px;">
+          ${lineHtml}
+          <div style="font-size:.6rem;color:var(--gold);margin-top:3px;text-align:center;">${pos}효</div>
+        </div>
+        <div>
+          <p style="font-weight:600;margin-bottom:5px;font-size:.93rem;">${y.text_ko}</p>
+          <p style="color:var(--text-muted);font-size:.85rem;line-height:1.75;">${y.comment_ko||''}</p>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('detail').innerHTML = `
+    <div class="fade-in">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;gap:28px;align-items:center;margin-bottom:20px;">
+          ${largeYao(lines)}
+          <div style="margin-left:8px;">
+            <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;">${no}번괘</p>
+            <h2 style="font-size:2rem;font-weight:800;line-height:1.1;">${g.name||'—'}</h2>
+            ${yao.trad_chinese ? `<p style="font-size:.78rem;color:var(--text-muted);margin-top:4px;">${yao.trad_chinese} · ${yao.pinyin||''} · ${yao.english||''}</p>` : ''}
+          </div>
+        </div>
+        ${rows}
+      </div>
+      ${yaoRows ? `<div class="card"><h3 style="font-weight:700;margin-bottom:18px;">6효(爻) 상세</h3>${yaoRows}</div>` : ''}
+    </div>`;
+}
+
+init();
+</script>
+</body>
+</html>

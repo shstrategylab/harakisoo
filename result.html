@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>풀이 결과 — 하락이수</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a href="index.html" class="site-logo">河洛理數</a>
+  <nav class="site-nav">
+    <a href="input.html">← 다시 입력</a>
+    <a href="gua-dictionary.html">64괘 사전</a>
+  </nav>
+</header>
+
+<!-- 로딩 -->
+<div id="loading-screen">
+  <div class="loading-spinner">☯</div>
+  <p style="color:var(--text-muted);">사주를 괘로 변환하는 중...</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;" id="loading-steps"></div>
+</div>
+
+<!-- 결과 -->
+<div id="result-wrap" style="display:none;" class="container">
+
+  <!-- 사주 배너 -->
+  <div class="card" id="saju-banner" style="margin-bottom:24px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;"></div>
+
+  <!-- 탭 -->
+  <div class="tabs" id="tab-bar"></div>
+
+  <!-- 탭 패널들 -->
+  <div id="tab-overview"   class="tab-panel"></div>
+  <div id="tab-seoncheon" class="tab-panel" style="display:none;"></div>
+  <div id="tab-hucheon"   class="tab-panel" style="display:none;"></div>
+  <div id="tab-yunnyeon"  class="tab-panel" style="display:none;"></div>
+  <div id="tab-timeline"  class="tab-panel" style="display:none;"></div>
+  <div id="tab-suri"      class="tab-panel" style="display:none;"></div>
+</div>
+
+<script src="js/harakisu.js"></script>
+<script src="js/prompt.js"></script>
+<script>
+const TABS = [
+  { id:'overview',   label:'개요' },
+  { id:'seoncheon', label:'선천괘' },
+  { id:'hucheon',   label:'후천괘' },
+  { id:'yunnyeon',  label:'올해 운' },
+  { id:'timeline',  label:'대운 흐름' },
+  { id:'suri',      label:'수리 계산' },
+];
+
+// 로딩 스텝 표시
+const steps = ['천간수 변환','지지수 변환','선천괘 도출','원당효 계산','후천괘 도출'];
+steps.forEach((s,i) => {
+  const span = document.createElement('span');
+  span.textContent = s;
+  span.style.cssText = `font-size:.75rem;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text-muted);animation:fadeIn .4s ease ${i*.2}s both;`;
+  document.getElementById('loading-steps').appendChild(span);
+});
+
+// 탭 렌더
+const tabBar = document.getElementById('tab-bar');
+TABS.forEach(t => {
+  const btn = document.createElement('button');
+  btn.className = 'tab-btn' + (t.id === 'overview' ? ' active' : '');
+  btn.textContent = t.label;
+  btn.onclick = () => switchTab(t.id);
+  tabBar.appendChild(btn);
+});
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${id}`).style.display = 'block';
+  document.querySelector(`button[onclick="switchTab('${id}')"]`)?.classList.add('active');
+}
+// tabBar 버튼에 onclick 연결
+tabBar.querySelectorAll('.tab-btn').forEach((btn,i) => {
+  btn.setAttribute('onclick', `switchTab('${TABS[i].id}')`);
+});
+
+// ── 결과 렌더링 함수들 ─────────────────────────────────────
+function guaCard(gua, lines, highlightPos, badge, extra='') {
+  return `
+  <div class="card" style="flex:1;min-width:240px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+      <span style="font-size:.75rem;color:var(--text-muted);">${gua._label||''}</span>
+      ${badge ? `<span style="font-size:.7rem;background:rgba(124,58,237,.2);color:var(--accent-light);padding:2px 8px;border-radius:20px;">${badge}</span>` : ''}
+    </div>
+    <div style="display:flex;gap:18px;align-items:center;margin-bottom:14px;">
+      ${Harakisu.renderYao(lines, highlightPos, 'sm')}
+      <div>
+        <div style="font-size:1.35rem;font-weight:800;">${gua.name||'—'}</div>
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px;">${gua.guaNo}번괘</div>
+      </div>
+    </div>
+    ${gua.dansa ? `<p style="font-size:.85rem;color:var(--text-muted);line-height:1.7;border-top:1px solid var(--border);padding-top:12px;">${gua.dansa}</p>` : ''}
+    ${gua.practical ? `<p style="font-size:.82rem;color:var(--accent-light);line-height:1.6;margin-top:8px;">💡 ${gua.practical}</p>` : ''}
+    ${extra}
+  </div>`;
+}
+
+function detailCard(gua, lines, highlightPos, yao, subLabel) {
+  const rows = [
+    ['괘사(卦辭)', gua.dansa],
+    ['상전(象傳)', gua.sangjeon],
+    ['실용 해석', gua.practical],
+    ['주의사항',  gua.caution],
+  ].filter(r=>r[1]).map(([k,v])=>`
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+      <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px;">${k}</p>
+      <p style="line-height:1.85;">${v}</p>
+    </div>`).join('');
+
+  const yaoBlock = yao?.text_ko ? `
+    <div class="card" style="border-color:var(--gold);margin-top:14px;">
+      <p style="font-size:.72rem;color:var(--gold);margin-bottom:8px;">${subLabel}</p>
+      <p style="font-weight:600;margin-bottom:6px;">${yao.text_ko}</p>
+      <p style="color:var(--text-muted);font-size:.9rem;line-height:1.7;">${yao.comment_ko||''}</p>
+    </div>` : '';
+
+  return `
+  <div class="card">
+    <div style="display:flex;gap:24px;align-items:center;margin-bottom:20px;">
+      ${Harakisu.renderYao(lines, highlightPos, 'lg')}
+      <div>
+        <p style="font-size:.75rem;color:var(--text-muted);">${gua._label||''}</p>
+        <h2 style="font-size:1.8rem;font-weight:800;">${gua.name||'—'}</h2>
+        <p style="color:var(--text-muted);font-size:.85rem;">${gua.guaNo}번괘</p>
+      </div>
+    </div>
+    ${rows}
+  </div>
+  ${yaoBlock}`;
+}
+
+function timelineHtml(tl, birthYear) {
+  const curYear = new Date().getFullYear();
+  const korAge  = curYear - birthYear + 1;
+  const cells   = tl.map(t => {
+    const isCur = korAge >= t.startAge && korAge <= t.endAge;
+    const bg    = isCur ? 'rgba(124,58,237,.12)' : t.isHc ? 'rgba(212,168,67,.05)' : 'transparent';
+    const topBar= isCur ? '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);"></div>' : '';
+    return `
+    <div style="position:relative;min-width:${t.years*14}px;padding:10px 8px;border-left:1px solid var(--border);background:${bg};">
+      ${topBar}
+      <div style="font-size:.6rem;color:var(--text-muted);margin-bottom:5px;">${t.startAge}~${t.endAge}세</div>
+      ${Harakisu.renderYao([t.yang?1:0], null, 'sm')}
+      <div style="font-size:.68rem;margin-top:5px;font-weight:${isCur?700:400};color:${isCur?'var(--accent-light)':'var(--text-muted)'};">
+        ${t.gua}괘 ${t.yaoPos}효
+      </div>
+      <div style="font-size:.58rem;color:${t.yang?'#818cf8':'#f472b6'};margin-top:2px;">${t.yang?'양 9년':'음 6년'}</div>
+      ${t.isHc ? '<div style="font-size:.55rem;color:var(--gold);">후천</div>' : ''}
+    </div>`;
+  }).join('');
+  return `<div style="overflow-x:auto;padding-bottom:8px;"><div style="display:flex;min-width:max-content;">${cells}</div></div>`;
+}
+
+function timelineListHtml(tl, birthYear) {
+  const curYear = new Date().getFullYear();
+  const korAge  = curYear - birthYear + 1;
+  return tl.map(t => {
+    const isCur = korAge >= t.startAge && korAge <= t.endAge;
+    return `
+    <div class="card" style="display:flex;gap:14px;align-items:center;border-color:${isCur?'var(--accent)':'var(--border)'};background:${isCur?'rgba(124,58,237,.1)':'var(--surface)'};">
+      ${Harakisu.renderYao([t.yang?1:0], null, 'sm')}
+      <div style="flex:1;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
+          <span style="font-weight:700;">${t.startAge}~${t.endAge}세</span>
+          <span style="font-size:.72rem;color:var(--text-muted);">(${t.startYear}~${t.endYear})</span>
+          ${isCur ? '<span style="font-size:.7rem;background:var(--accent);color:#fff;padding:1px 8px;border-radius:20px;">현재</span>' : ''}
+          ${t.isHc ? '<span style="font-size:.7rem;color:var(--gold);">후천</span>' : ''}
+        </div>
+        <p style="font-size:.85rem;color:var(--text-muted);">${t.gua}번괘 ${t.yaoPos}효 · ${t.yang?'양효 9년':'음효 6년'}</p>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function promptBox(result) {
+  return `
+  <div class="card" style="margin-top:24px;">
+    <h3 style="font-weight:700;margin-bottom:6px;">🤖 Claude 심층 상담 프롬프트</h3>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px;">
+      아래 프롬프트를 복사해 <strong>claude.ai</strong> 대화창에 붙여넣으세요.<br>
+      추가 질문을 입력하면 맞춤 프롬프트가 생성됩니다.
+    </p>
+    <textarea id="prompt-question" rows="2" placeholder="추가 질문 (예: 이직해도 될까요? / 올해 사업 시작해도 될까요?)"
+      style="margin-bottom:10px;resize:vertical;"></textarea>
+    <div style="display:flex;gap:10px;">
+      <button onclick="copyPrompt()" id="copy-btn"
+        style="flex:1;padding:12px 0;border-radius:10px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700;font-size:.95rem;font-family:inherit;transition:background .3s;">
+        📋 프롬프트 복사
+      </button>
+      <a href="https://claude.ai" target="_blank"
+        style="padding:12px 18px;border-radius:10px;border:1px solid var(--border);color:var(--text-muted);text-decoration:none;font-size:.9rem;display:flex;align-items:center;">
+        Claude 열기 ↗
+      </a>
+    </div>
+    <details style="margin-top:14px;">
+      <summary style="font-size:.8rem;color:var(--text-muted);cursor:pointer;">프롬프트 미리보기</summary>
+      <pre id="prompt-preview" style="margin-top:10px;padding:12px;background:var(--surface2);border-radius:8px;font-size:.72rem;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;line-height:1.6;max-height:280px;overflow-y:auto;"></pre>
+    </details>
+  </div>`;
+}
+
+// ── 메인 ──────────────────────────────────────────────────────
+let RESULT = null;
+
+async function main() {
+  const p = new URLSearchParams(location.search);
+  const year   = Number(p.get('year'));
+  const month  = Number(p.get('month'));
+  const day    = Number(p.get('day'));
+  const hour   = Number(p.get('hour') ?? 12);
+  const gender = p.get('gender') || 'male';
+
+  if (!year) { location.href = 'input.html'; return; }
+
+  try {
+    RESULT = await Harakisu.calcHarakisu({ year, month, day, hour, gender });
+  } catch(e) {
+    document.getElementById('loading-screen').innerHTML =
+      `<p style="color:#f87171;">계산 오류: ${e.message}</p><a href="input.html" style="color:var(--accent-light);">← 다시 입력</a>`;
+    return;
+  }
+
+  const { ganji8, suri, sc, hc, wondang, wondangYao, yy, timeline, birthYear, currentYear } = RESULT;
+  const korAge = currentYear - birthYear + 1;
+  const cur    = timeline.find(t => korAge >= t.startAge && korAge <= t.endAge);
+
+  // 사주 배너
+  document.getElementById('saju-banner').innerHTML = `
+    <div>
+      <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px;">사주팔자</p>
+      <div style="display:flex;gap:12px;">
+        ${['연주','월주','일주','시주'].map((label,i) => `
+          <div style="text-align:center;">
+            <div style="font-size:.58rem;color:var(--text-muted);margin-bottom:2px;">${label}</div>
+            <div style="font-size:1.1rem;font-weight:700;line-height:1.3;color:${i===2?'var(--gold)':'var(--text)'};">
+              ${ganji8[i*2]}<br>${ganji8[i*2+1]}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div style="height:36px;width:1px;background:var(--border);"></div>
+    <div>
+      <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;">수리</p>
+      <p style="font-weight:700;">천수 <span style="color:var(--accent-light);">${suri.cheonsu}</span> · 지수 <span style="color:#f472b6;">${suri.jisu}</span></p>
+    </div>
+    <div style="height:36px;width:1px;background:var(--border);"></div>
+    <div>
+      <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;">${gender==='male'?'남성':'여성'} · ${birthYear}년생 · ${korAge}세</p>
+      <p style="font-weight:700;">일간 <span style="color:var(--gold);">${ganji8[4]}</span></p>
+    </div>`;
+
+  sc._label = '선천괘 · 인생 전반';
+  hc._label = '후천괘 · 인생 후반';
+  yy._label = `올해 ${currentYear}년 유년괘`;
+
+  // ── 개요 탭
+  document.getElementById('tab-overview').innerHTML = `
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+      ${guaCard(sc, sc.lines, wondang, `원당효 ${wondang}효`)}
+      ${guaCard(hc, hc.lines, null, '')}
+    </div>
+    <div class="card" style="margin-bottom:20px;border-color:var(--gold);">
+      <p style="font-size:.72rem;color:var(--gold);margin-bottom:10px;">올해 ${currentYear}년 유년괘</p>
+      <div style="display:flex;gap:18px;align-items:center;">
+        ${Harakisu.renderYao(sc.lines, yy.yaoPos, 'sm')}
+        <div>
+          <div style="font-size:1.25rem;font-weight:800;">${yy.name||'—'} ${yy.yaoPos}효</div>
+          <p style="color:var(--text-muted);font-size:.85rem;margin-top:6px;">${yy.yaoData?.text_ko||yy.dansa||''}</p>
+          ${yy.yaoData?.comment_ko ? `<p style="color:var(--accent-light);font-size:.82rem;margin-top:6px;">💡 ${yy.yaoData.comment_ko}</p>` : ''}
+        </div>
+      </div>
+    </div>
+    ${promptBox(RESULT)}`;
+
+  // ── 선천괘 탭
+  document.getElementById('tab-seoncheon').innerHTML = detailCard(sc, sc.lines, wondang, wondangYao, `원당효(元堂爻) · ${wondang}효`);
+
+  // ── 후천괘 탭
+  document.getElementById('tab-hucheon').innerHTML = detailCard(hc, hc.lines, null, null, '');
+
+  // ── 유년괘 탭
+  document.getElementById('tab-yunnyeon').innerHTML = `
+    <div class="card" style="border-color:var(--gold);margin-bottom:16px;">
+      <p style="font-size:.72rem;color:var(--gold);margin-bottom:12px;">${currentYear}년 유년괘</p>
+      <div style="display:flex;gap:24px;align-items:center;margin-bottom:18px;">
+        ${Harakisu.renderYao(sc.lines, yy.yaoPos, 'lg')}
+        <div>
+          <h2 style="font-size:1.7rem;font-weight:800;">${yy.name||'—'} ${yy.yaoPos}효</h2>
+          <p style="color:var(--text-muted);font-size:.85rem;">${yy.gua}번괘 · 현재 ${korAge}세</p>
+        </div>
+      </div>
+      ${yy.dansa ? `<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;"><p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px;">괘사</p><p style="line-height:1.85;">${yy.dansa}</p></div>` : ''}
+      ${yy.yaoData?.text_ko ? `<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;"><p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px;">효사</p><p style="font-weight:600;margin-bottom:6px;">${yy.yaoData.text_ko}</p><p style="color:var(--accent-light);line-height:1.7;">${yy.yaoData.comment_ko||''}</p></div>` : ''}
+      ${cur ? `<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;"><p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px;">현재 대운 구간</p><p>${cur.startAge}세~${cur.endAge}세 (${cur.yang?'양효 9년':'음효 6년'} 지배)</p></div>` : ''}
+    </div>
+    ${promptBox(RESULT)}`;
+
+  // ── 타임라인 탭
+  document.getElementById('tab-timeline').innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <h3 style="font-weight:700;margin-bottom:6px;">평생 대운 타임라인</h3>
+      <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:18px;">양효(—)는 9년, 음효(--)는 6년 지배. 보라색이 현재 구간입니다.</p>
+      ${timelineHtml(timeline, birthYear)}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${timelineListHtml(timeline, birthYear)}
+    </div>`;
+
+  // ── 수리 탭
+  const suriRows = [...suri.chunganList.map((s,i)=>({label:`${['연','월','일','시'][i]}간 ${s.char}`, su:s.su, color:'var(--accent-light)'})),
+                    ...suri.jijiList.map((s,i)=>({label:`${['연','월','일','시'][i]}지 ${s.char}`, su:s.su, color:'#f472b6'}))];
+  document.getElementById('tab-suri').innerHTML = `
+    <div class="card">
+      <h3 style="font-weight:700;margin-bottom:16px;">수리 변환 과정</h3>
+      <div class="grid-2" style="margin-bottom:20px;">
+        ${suriRows.map(r=>`
+          <div style="padding:10px 14px;background:var(--surface2);border-radius:8px;display:flex;justify-content:space-between;">
+            <span style="color:var(--text-muted);font-size:.85rem;">${r.label}</span>
+            <span style="font-weight:700;color:${r.color};">${r.su}</span>
+          </div>`).join('')}
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px;display:flex;gap:20px;flex-wrap:wrap;">
+        <div><p style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;">천수 (홀수 합)</p><p style="font-size:1.8rem;font-weight:800;color:var(--accent-light);">${suri.cheonsu}</p></div>
+        <div style="align-self:center;font-size:1.4rem;color:var(--text-muted);">+</div>
+        <div><p style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;">지수 (짝수 합)</p><p style="font-size:1.8rem;font-weight:800;color:#f472b6;">${suri.jisu}</p></div>
+        <div style="align-self:center;font-size:1.4rem;color:var(--text-muted);">=</div>
+        <div><p style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;">합계</p><p style="font-size:1.8rem;font-weight:800;">${suri.cheonsu+suri.jisu}</p></div>
+      </div>
+      <div style="margin-top:16px;padding:12px 14px;background:var(--surface2);border-radius:8px;">
+        <p style="font-size:.8rem;color:var(--text-muted);line-height:1.8;">
+          <strong style="color:var(--text);">선천괘 도출:</strong>
+          ${gender==='male'?'천':'지'}수 ${suri.csF} ÷ 8 = 나머지 ${suri.csF%8||8} → 상괘 ·
+          ${gender==='male'?'지':'천'}수 ${suri.jsF} ÷ 8 = 나머지 ${suri.jsF%8||8} → 하괘<br>
+          <strong style="color:var(--text);">원당효 도출:</strong>
+          (${suri.cheonsu}+${suri.jisu}) ÷ 6 = 나머지 ${(suri.cheonsu+suri.jisu)%6||6} → ${wondang}효
+        </p>
+      </div>
+    </div>`;
+
+  // 로딩 숨기기
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('result-wrap').style.display    = 'block';
+
+  // 프롬프트 이벤트 연결
+  connectPromptBoxes();
+}
+
+function connectPromptBoxes() {
+  document.querySelectorAll('#prompt-question').forEach(ta => {
+    ta.addEventListener('input', updatePreviews);
+  });
+  updatePreviews();
+}
+
+function updatePreviews() {
+  if (!RESULT) return;
+  const q = document.getElementById('prompt-question')?.value || '';
+  const text = buildPrompt(RESULT, q);
+  document.querySelectorAll('#prompt-preview').forEach(el => el.textContent = text);
+}
+
+function copyPrompt() {
+  if (!RESULT) return;
+  const q = document.getElementById('prompt-question')?.value || '';
+  navigator.clipboard.writeText(buildPrompt(RESULT, q)).then(() => {
+    const btn = document.getElementById('copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ 복사됨!';
+    btn.style.background = '#16a34a';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = 'var(--accent)'; }, 2500);
+  });
+}
+
+main();
+</script>
+</body>
+</html>
