@@ -20,8 +20,16 @@ const GANJI_60 = [
 const BASE_DATE_MS = new Date('2024-01-01').getTime();
 
 // ── 천간/지지 테이블 ──────────────────────────────────────────
-const CHUNGAN_SU = {甲:8,乙:4,丙:9,丁:3,戊:2,己:1,庚:7,辛:6,壬:5,癸:10};
-const JIJI_SU    = {子:9,丑:8,寅:7,卯:6,辰:5,巳:4,午:9,未:8,申:7,酉:6,戌:5,亥:4};
+// 원전(하락이수 취수 작괘법) 기준 수리 배정
+// 천간: 甲6 乙2 丙8 丁7 戊1 己9 庚3 辛4 壬6 癸2
+// 지지: 亥子=1·6, 丑辰戌未=5·10, 寅卯=3·8, 巳午=2·7, 申酉=4·9
+//   → 지지는 쌍수(홀수+짝수 각 1개)를 모두 취함 (원전 방식)
+const CHUNGAN_SU = {甲:6,乙:2,丙:8,丁:7,戊:1,己:9,庚:3,辛:4,壬:6,癸:2};
+// JIJI_SU: 화면 표시용 대표수 (홀수 우선)
+const JIJI_SU    = {子:1,丑:5,寅:3,卯:3,辰:5,巳:2,午:2,未:5,申:4,酉:4,戌:5,亥:1};
+// JIJI_PAIR: 수리 계산 시 쌍수 모두 사용 (홀수·짝수 각 1개)
+const JIJI_PAIR  = {子:[1,6],丑:[5,10],寅:[3,8],卯:[3,8],辰:[5,10],
+                   巳:[2,7],午:[2,7],未:[5,10],申:[4,9],酉:[4,9],戌:[5,10],亥:[1,6]};
 
 const MONTH_TERMS = ['입춘','경칩','청명','입하','망종','소서','입추','백로','한로','입동','대설','소한'];
 const MONTH_JI    = ['寅','卯','辰','巳','午','未','申','酉','戌','亥','子','丑'];
@@ -262,7 +270,8 @@ async function calcHarakisu({ year, month, day, hour = 12, gender = 'male' }) {
   // 수리
   const cgs  = [yearG.gan, monthG.gan, dayG.gan, hourG.gan];
   const jgs  = [yearG.ji,  monthG.ji,  dayG.ji,  hourG.ji];
-  const allSu = [...cgs.map(g => CHUNGAN_SU[g]||0), ...jgs.map(j => JIJI_SU[j]||0)];
+  // 지지는 쌍수(홀+짝 각 1개) 모두 합산 — 원전 방식
+  const allSu = [...cgs.map(g => CHUNGAN_SU[g]||0), ...jgs.flatMap(j => JIJI_PAIR[j] || [JIJI_SU[j]||0])];
   const cheonsu = allSu.filter(n => n % 2 !== 0).reduce((a,b)=>a+b,0);
   const jisu    = allSu.filter(n => n % 2 === 0).reduce((a,b)=>a+b,0);
 
