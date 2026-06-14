@@ -47,7 +47,7 @@
 
 <script src="js/harakisu.js"></script>
 <script>
-const GUA_LINES = Harakisu.GUA_LINES;
+const HEX_LINES = Harakisu.GUA_LINES;
 
 function miniYao(lines=[]) {
   let html = '<div style="display:flex;flex-direction:column-reverse;gap:2px;">';
@@ -87,7 +87,7 @@ function renderList(entries) {
   const list = document.getElementById('gua-list');
   list.innerHTML = entries.map(g => `
     <button class="gua-item" id="item-${g.no}" onclick="showDetail(${g.no})">
-      ${miniYao(GUA_LINES[g.no]||[])}
+      ${miniYao(HEX_LINES[g.no]||[])}
       <div>
         <div class="gua-no">${g.no}번</div>
         <div class="gua-name">${g.name}</div>
@@ -108,7 +108,7 @@ function showDetail(no) {
 
   const g   = guaDB[no]  || {};
   const yao = yaoDB[no]  || {};
-  const lines = GUA_LINES[no] || [];
+  const lines = HEX_LINES[no] || [];
 
   const rows = [
     ['괘사(卦辭)', g.dansa],
