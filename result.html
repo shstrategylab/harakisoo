@@ -272,7 +272,7 @@ async function main() {
     <div class="card" style="margin-bottom:20px;border-color:var(--gold);">
       <p style="font-size:.72rem;color:var(--gold);margin-bottom:10px;">올해 ${currentYear}년 유년괘</p>
       <div style="display:flex;gap:18px;align-items:center;">
-        ${Harakisu.renderYao(Harakisu.GUA_LINES[yy.gua], yy.yaoPos, 'sm')}
+        ${Harakisu.renderYao(sc.lines, yy.yaoPos, 'sm')}
         <div>
           <div style="font-size:1.25rem;font-weight:800;">${yy.name||'—'} ${yy.yaoPos}효</div>
           <p style="color:var(--text-muted);font-size:.85rem;margin-top:6px;">${yy.yaoData?.text_ko||yy.dansa||''}</p>
@@ -293,7 +293,7 @@ async function main() {
     <div class="card" style="border-color:var(--gold);margin-bottom:16px;">
       <p style="font-size:.72rem;color:var(--gold);margin-bottom:12px;">${currentYear}년 유년괘</p>
       <div style="display:flex;gap:24px;align-items:center;margin-bottom:18px;">
-        ${Harakisu.renderYao(Harakisu.GUA_LINES[yy.gua], yy.yaoPos, 'lg')}
+        ${Harakisu.renderYao(sc.lines, yy.yaoPos, 'lg')}
         <div>
           <h2 style="font-size:1.7rem;font-weight:800;">${yy.name||'—'} ${yy.yaoPos}효</h2>
           <p style="color:var(--text-muted);font-size:.85rem;">${yy.gua}번괘 · 현재 ${korAge}세</p>
