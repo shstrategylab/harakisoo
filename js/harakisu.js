@@ -20,16 +20,8 @@ const GANJI_60 = [
 const BASE_DATE_MS = new Date('2024-01-01').getTime();
 
 // ── 천간/지지 테이블 ──────────────────────────────────────────
-// 원전(하락이수 취수 작괘법) 기준 수리 배정
-// 천간: 甲6 乙2 丙8 丁7 戊1 己9 庚3 辛4 壬6 癸2
-// 지지: 亥子=1·6, 丑辰戌未=5·10, 寅卯=3·8, 巳午=2·7, 申酉=4·9
-//   → 지지는 쌍수(홀수+짝수 각 1개)를 모두 취함 (원전 방식)
-const CHUNGAN_SU = {甲:6,乙:2,丙:8,丁:7,戊:1,己:9,庚:3,辛:4,壬:6,癸:2};
-// JIJI_SU: 화면 표시용 대표수 (홀수 우선)
-const JIJI_SU    = {子:1,丑:5,寅:3,卯:3,辰:5,巳:2,午:2,未:5,申:4,酉:4,戌:5,亥:1};
-// JIJI_PAIR: 수리 계산 시 쌍수 모두 사용 (홀수·짝수 각 1개)
-const JIJI_PAIR  = {子:[1,6],丑:[5,10],寅:[3,8],卯:[3,8],辰:[5,10],
-                   巳:[2,7],午:[2,7],未:[5,10],申:[4,9],酉:[4,9],戌:[5,10],亥:[1,6]};
+const CHUNGAN_SU = {甲:8,乙:4,丙:9,丁:3,戊:2,己:1,庚:7,辛:6,壬:5,癸:10};
+const JIJI_SU    = {子:9,丑:8,寅:7,卯:6,辰:5,巳:4,午:9,未:8,申:7,酉:6,戌:5,亥:4};
 
 const MONTH_TERMS = ['입춘','경칩','청명','입하','망종','소서','입추','백로','한로','입동','대설','소한'];
 const MONTH_JI    = ['寅','卯','辰','巳','午','未','申','酉','戌','亥','子','丑'];
@@ -94,16 +86,54 @@ const GUA_TABLE = [
 // ── DB 캐시 ───────────────────────────────────────────────────
 let DB = { manse: null, solar: null, dansa: null, yao: null };
 
+// ── 절기 날짜 수식 계산 (DB 없이 모든 연도 처리) ─────────────
+// 수경식(壽星萬年曆) 절기 근사 공식: day = floor(Y*0.2422 + B) - floor(Y/4), Y=year-1900
+const SOLAR_TERM_PARAMS = {
+  '소한': [1,  6.11], '대한': [1, 20.84],
+  '입춘': [2,  4.60], '우수': [2, 19.40],
+  '경칩': [3,  6.18], '춘분': [3, 20.90],
+  '청명': [4,  5.15], '곡우': [4, 20.65],
+  '입하': [5,  6.13], '소만': [5, 21.37],
+  '망종': [6,  6.43], '하지': [6, 21.92],
+  '소서': [7,  7.62], '대서': [7, 23.15],
+  '입추': [8,  8.35], '처서': [8, 23.95],
+  '백로': [9,  8.44], '추분': [9, 23.42],
+  '한로': [10, 8.90], '상강': [10,23.90],
+  '입동': [11, 8.11], '소설': [11,22.94],
+  '대설': [12, 7.69], '동지': [12,22.38],
+};
+
+function getSolarTermDate(termName, year) {
+  const dbEntry = (DB.solar || []).find(t => t.name === termName && t.date?.startsWith(String(year)));
+  if (dbEntry) return dbEntry.date;
+  const p = SOLAR_TERM_PARAMS[termName];
+  if (!p) return null;
+  const Y = year - 1900;
+  const [mon, B] = p;
+  const day = Math.floor(Y * 0.2422 + B) - Math.floor(Y / 4);
+  return `${year}-${String(mon).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+
 async function loadDB() {
   if (DB.manse) return;
   const base = getBasePath();
-  const [manse, solar, dansa, yao] = await Promise.all([
-    fetch(`${base}data/manse_100_db.json`).then(r => r.json()),
+
+  // 1차: 필수 파일 먼저 (가볍고 빠름)
+  const [solar, dansa, yao, manseMeta] = await Promise.all([
     fetch(`${base}data/solar_terms_db.json`).then(r => r.json()),
     fetch(`${base}data/iching_dansa.json`).then(r => r.json()),
     fetch(`${base}data/iching_384_korean.json`).then(r => r.json()),
+    fetch(`${base}data/manse_meta.json`).then(r => r.json()),
   ]);
-  DB.manse = manse; DB.solar = solar; DB.dansa = dansa; DB.yao = yao;
+  DB.solar = solar; DB.dansa = dansa; DB.yao = yao;
+  DB.manse = { ...manseMeta, daily_cache: {} };
+
+  // 2차: daily_cache 백그라운드 로딩 (1950~2050 일진, 약 800KB)
+  // 로딩 완료 전에는 60갑자 역산으로 자동 fallback
+  fetch(`${base}data/daily_cache.json`)
+    .then(r => r.json())
+    .then(cache => { DB.manse.daily_cache = cache; })
+    .catch(() => {});
 }
 
 function getBasePath() {
@@ -135,41 +165,9 @@ function getYearGanji(year, dateStr) {
   return { gan: g[0], ji: g[1] };
 }
 
-// ── 절기 날짜 수식 계산 (DB 없이 모든 연도 처리) ─────────────
-// 수경식(壽星萬年曆) 절기 근사 공식: day = floor(Y*0.2422 + B) - floor(Y/4), Y=year-1900
-const SOLAR_TERM_PARAMS = {
-  '소한': [1,  6.11], '대한': [1, 20.84],
-  '입춘': [2,  4.60], '우수': [2, 19.40],
-  '경칩': [3,  6.18], '춘분': [3, 20.90],
-  '청명': [4,  5.15], '곡우': [4, 20.65],
-  '입하': [5,  6.13], '소만': [5, 21.37],
-  '망종': [6,  6.43], '하지': [6, 21.92],
-  '소서': [7,  7.62], '대서': [7, 23.15],
-  '입추': [8,  8.35], '처서': [8, 23.95],
-  '백로': [9,  8.44], '추분': [9, 23.42],
-  '한로': [10, 8.90], '상강': [10,23.90],
-  '입동': [11, 8.11], '소설': [11,22.94],
-  '대설': [12, 7.69], '동지': [12,22.38],
-};
-
-function getSolarTermDate(termName, year) {
-  // DB에 있으면 DB 우선 사용
-  const dbEntry = (DB.solar || []).find(t => t.name === termName && t.date?.startsWith(String(year)));
-  if (dbEntry) return dbEntry.date;
-  // DB에 없으면 수식으로 계산 (1900~2100 유효)
-  const p = SOLAR_TERM_PARAMS[termName];
-  if (!p) return null;
-  const Y = year - 1900;
-  const [mon, B] = p;
-  const day = Math.floor(Y * 0.2422 + B) - Math.floor(Y / 4);
-  return `${year}-${String(mon).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-}
-
 // ── 월주 계산 ─────────────────────────────────────────────────
 function getMonthGanji(year, dateStr, yearGan) {
   const targetDate = new Date(dateStr);
-
-  // 검색 범위: 전년~당년+1 (소한이 1월 초이므로 연도 경계 처리)
   const candidates = [];
   for (const termName of MONTH_TERMS) {
     for (const y of [year - 1, year, year + 1]) {
@@ -178,15 +176,12 @@ function getMonthGanji(year, dateStr, yearGan) {
     }
   }
   candidates.sort((a, b) => new Date(a.date) - new Date(b.date));
-
   let monthNo = 0;
   for (let i = candidates.length - 1; i >= 0; i--) {
     if (new Date(candidates[i].date) <= targetDate) {
-      monthNo = MONTH_TERMS.indexOf(candidates[i].name);
-      break;
+      monthNo = MONTH_TERMS.indexOf(candidates[i].name); break;
     }
   }
-
   const ganArr = MONTH_GAN_MAP[yearGan] || MONTH_GAN_MAP['甲'];
   return { gan: ganArr[monthNo], ji: MONTH_JI[monthNo] };
 }
@@ -270,8 +265,7 @@ async function calcHarakisu({ year, month, day, hour = 12, gender = 'male' }) {
   // 수리
   const cgs  = [yearG.gan, monthG.gan, dayG.gan, hourG.gan];
   const jgs  = [yearG.ji,  monthG.ji,  dayG.ji,  hourG.ji];
-  // 지지는 쌍수(홀+짝 각 1개) 모두 합산 — 원전 방식
-  const allSu = [...cgs.map(g => CHUNGAN_SU[g]||0), ...jgs.flatMap(j => JIJI_PAIR[j] || [JIJI_SU[j]||0])];
+  const allSu = [...cgs.map(g => CHUNGAN_SU[g]||0), ...jgs.map(j => JIJI_SU[j]||0)];
   const cheonsu = allSu.filter(n => n % 2 !== 0).reduce((a,b)=>a+b,0);
   const jisu    = allSu.filter(n => n % 2 === 0).reduce((a,b)=>a+b,0);
 
