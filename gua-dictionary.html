@@ -106,9 +106,10 @@ function showDetail(no) {
   document.querySelectorAll('.gua-item').forEach(b=>b.classList.remove('active'));
   document.getElementById(`item-${no}`)?.classList.add('active');
 
-  const g   = guaDB[no]  || {};
-  const yao = yaoDB[no]  || {};
-  const lines = GUA_LINES_MAP[no] || GUA_LINES_MAP[String(no)] || [];
+  const key = String(no);
+  const g   = guaDB[key]  || {};
+  const yao = yaoDB[key]  || {};
+  const lines = GUA_LINES_MAP[key] || [];
 
   const rows = [
     ['괘사(卦辭)', g.dansa],
