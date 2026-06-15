@@ -191,10 +191,10 @@ function timelineListHtml(tl, birthYear) {
 
   return tl.map(t => {
     const isCur  = korAge >= t.startAge && korAge <= t.endAge;
-    const guaInfo = Harakisu.DB.dansa?.[t.gua] || Harakisu.DB.dansa?.[String(t.gua)] || {};
-    const yaoInfo = Harakisu.DB.yao?.[t.gua]?.lines?.[t.yaoPos]
-                 || Harakisu.DB.yao?.[String(t.gua)]?.lines?.[t.yaoPos] || {};
-    const guaLines = Harakisu.GUA_LINES[t.gua] || [];
+    const guaKey  = String(t.gua);
+    const guaInfo = (Harakisu.DB.dansa || {})[guaKey] || {};
+    const yaoInfo = ((Harakisu.DB.yao || {})[guaKey]?.lines || {})[t.yaoPos] || {};
+    const guaLines = Harakisu.GUA_LINES[t.gua] || Harakisu.GUA_LINES[guaKey] || [];
 
     return `
     <div class="card" style="border-color:${isCur?'var(--accent)':'var(--border)'};background:${isCur?'rgba(124,58,237,.08)':'var(--surface)'};">
