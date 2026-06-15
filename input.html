@@ -53,7 +53,7 @@
     <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:16px;">생년월일을 입력해주세요</h2>
 
     <!-- 양력/음력 토글 -->
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
       <button id="btn-solar" onclick="setCalType('solar')"
         style="flex:1;padding:10px 0;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:inherit;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all .2s;">
         양력
@@ -112,6 +112,91 @@
 </div>
 
 <script>
+// ── 음력→양력 변환 (Ho Ngoc Duc 알고리즘, Jean Meeus 기반) ──────────────
+(function(){
+  function _int(d){return Math.floor(d);}
+
+  function jdFromDate(dd,mm,yy){
+    var a=_int((14-mm)/12),y=yy+4800-a,m=mm+12*a-3;
+    var jd=dd+_int((153*m+2)/5)+365*y+_int(y/4)-_int(y/100)+_int(y/400)-32045;
+    if(jd<2299161)jd=dd+_int((153*m+2)/5)+365*y+_int(y/4)-32083;
+    return jd;
+  }
+
+  function jdToDate(jd){
+    var z=jd,a,b,c,d,e,alpha;
+    if(z<2299161){a=z;}
+    else{alpha=_int((z-1867216.25)/36524.25);a=z+1+alpha-_int(alpha/4);}
+    b=a+1524; c=_int((b-122.1)/365.25); d=_int(365.25*c); e=_int((b-d)/30.6001);
+    var day=b-d-_int(30.6001*e);
+    var month=(e<14)?e-1:e-13;
+    var year=(month>2)?c-4716:c-4715;
+    return{day:day,month:month,year:year};
+  }
+
+  function getNewMoonDay(k,tz){
+    var dr=Math.PI/180,T=k/1236.85,T2=T*T,T3=T2*T;
+    var Jd1=2415020.75933+29.53058868*k+0.0001178*T2-0.000000155*T3;
+    Jd1+=0.00033*Math.sin((166.56+132.87*T-0.009173*T2)*dr);
+    var M=359.2242+29.10535608*k-0.0000333*T2-0.00000347*T3;
+    var Mpr=306.0253+385.81691806*k+0.0107306*T2+0.00001236*T3;
+    var F=21.2964+390.67050646*k-0.0016528*T2-0.00000239*T3;
+    var C1=(0.1734-0.000393*T)*Math.sin(M*dr)+0.0021*Math.sin(2*dr*M);
+    C1-=0.4068*Math.sin(Mpr*dr)+0.0161*Math.sin(2*dr*Mpr)-0.0004*Math.sin(3*dr*Mpr);
+    C1+=0.0104*Math.sin(2*dr*F)-0.0051*Math.sin((M+Mpr)*dr);
+    C1-=0.0074*Math.sin((M-Mpr)*dr)+0.0004*Math.sin((2*F+M)*dr);
+    C1-=0.0004*Math.sin((2*F-M)*dr)-0.0006*Math.sin((2*F+Mpr)*dr);
+    C1+=0.0010*Math.sin((2*F-Mpr)*dr)+0.0005*Math.sin((M+2*Mpr)*dr);
+    var deltat;
+    if(T<-11)deltat=0.001+0.000839*T+0.0002261*T2-0.00000845*T3-0.000000081*T*T3;
+    else deltat=-0.000278+0.000265*T+0.000262*T2;
+    return _int(Jd1+C1-deltat+0.5+tz/24);
+  }
+
+  function getSunLongitude(jdn,tz){
+    var dr=Math.PI/180,T=(jdn-2451545.5-tz/24)/36525,T2=T*T;
+    var M=357.52911+35999.05029*T-0.0001537*T2;
+    var L0=280.46646+36000.76983*T+0.0003032*T2;
+    var DL=1.914602-0.004817*T-0.000014*T2;
+    DL+=(0.019993-0.000101*T)*Math.sin(M*dr)+0.000289*Math.sin(2*M*dr);
+    var theta=L0+DL-0.00569-0.00478*Math.sin((125.04-1934.136*T)*dr);
+    theta=theta-360*_int(theta/360);
+    return _int(theta/30)%12;
+  }
+
+  function getLunarMonth11(yy,tz){
+    var k=_int((jdFromDate(31,12,yy)-2415021)/29.530588853);
+    var nm=getNewMoonDay(k,tz);
+    if(getSunLongitude(nm,tz)>=9)nm=getNewMoonDay(k-1,tz);
+    return nm;
+  }
+
+  function getLeapMonthOffset(a11,tz){
+    var k=_int(0.5+(a11-2415021.076998695)/29.530588853);
+    var i=1,arc=getSunLongitude(getNewMoonDay(k+i,tz),tz),last;
+    do{last=arc;i++;arc=getSunLongitude(getNewMoonDay(k+i,tz),tz);}while(arc!==last&&i<14);
+    return i-1;
+  }
+
+  window.lunarToSolar=function(ld,lm,ly,leap){
+    var tz=9; // KST
+    var a11,b11,off,leapOff,leapMonth,monthStart,k;
+    if(lm<11){a11=getLunarMonth11(ly-1,tz);b11=getLunarMonth11(ly,tz);}
+    else{a11=getLunarMonth11(ly,tz);b11=getLunarMonth11(ly+1,tz);}
+    k=_int(0.5+(a11-2415021.076998695)/29.530588853);
+    off=lm-11; if(off<0)off+=12;
+    if(b11-a11>365){
+      leapOff=getLeapMonthOffset(a11,tz);
+      leapMonth=leapOff-2; if(leapMonth<0)leapMonth+=12;
+      if(leap&&lm!==leapMonth)return null;
+      if(leap||off>=leapOff)off++;
+    }
+    monthStart=getNewMoonDay(k+off,tz);
+    return jdToDate(monthStart+ld-1);
+  };
+})();
+
+// ── 상수 ────────────────────────────────────────────────────────────────────
 const HOURS = [
   { label:'모름 (12시로 처리)', val:12 },
   { label:'자시 (23:00~01:00)', val:0 },
@@ -128,163 +213,136 @@ const HOURS = [
   { label:'해시 (21:00~23:00)', val:21 },
 ];
 
-let state = { step: 0, gender: '', year: '', month: '', day: '', hour: 12, calType: 'solar' };
+let state = { step:0, gender:'', year:'', month:'', day:'', hour:12, calType:'solar', lunarYear:null, lunarMonth:null, lunarDay:null };
 
-// 양력/음력 토글
-function setCalType(type) {
-  state.calType = type;
-  const isSolar = type === 'solar';
-  const btnSolar = document.getElementById('btn-solar');
-  const btnLunar = document.getElementById('btn-lunar');
-  btnSolar.style.background   = isSolar ? 'var(--accent)' : 'transparent';
-  btnSolar.style.borderColor  = isSolar ? 'var(--accent)' : 'var(--border)';
-  btnSolar.style.color        = isSolar ? '#fff' : 'var(--text-muted)';
-  btnLunar.style.background   = !isSolar ? 'var(--accent)' : 'transparent';
-  btnLunar.style.borderColor  = !isSolar ? 'var(--accent)' : 'var(--border)';
-  btnLunar.style.color        = !isSolar ? '#fff' : 'var(--text-muted)';
+// ── 양력/음력 토글 ───────────────────────────────────────────────────────────
+function setCalType(type){
+  state.calType=type;
+  var isSolar=type==='solar';
+  var s=document.getElementById('btn-solar'), l=document.getElementById('btn-lunar');
+  s.style.background  = isSolar?'var(--accent)':'transparent';
+  s.style.borderColor = isSolar?'var(--accent)':'var(--border)';
+  s.style.color       = isSolar?'#fff':'var(--text-muted)';
+  l.style.background  = !isSolar?'var(--accent)':'transparent';
+  l.style.borderColor = !isSolar?'var(--accent)':'var(--border)';
+  l.style.color       = !isSolar?'#fff':'var(--text-muted)';
   document.getElementById('cal-hint').textContent =
-    isSolar ? '양력 날짜를 입력해주세요.' : '음력 날짜를 입력해주세요. (음력→양력 자동 변환됩니다)';
+    isSolar?'양력 날짜를 입력해주세요.':'음력 날짜를 입력해주세요. (자동으로 양력 변환됩니다)';
 }
 
-// 음력→양력 변환 (근사값: Gregorian 기반 오프셋 테이블)
-// 정밀 변환이 필요하면 외부 라이브러리 사용 권장
-function lunarToSolar(y, m, d) {
-  // 간이 변환: 음력은 양력보다 평균 21~50일 늦음
-  // 실제 서비스에서는 lunar.js 등 라이브러리 사용 권장
-  // 여기서는 harakisu.js에 lunarToSolar가 있으면 사용, 없으면 근사값
-  if (typeof Harakisu !== 'undefined' && Harakisu.lunarToSolar) {
-    return Harakisu.lunarToSolar(y, m, d);
-  }
-  // 근사: 음력 월에 따라 대략적인 양력 날짜 반환 (±1일 오차 가능)
-  const date = new Date(y, m - 1, d + 30);
-  return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
-}
-
-// 시각 버튼 렌더 (2열 그리드)
-const hourList = document.getElementById('hour-list');
-HOURS.forEach((h, idx) => {
-  const btn = document.createElement('button');
-  btn.textContent = h.label;
-  btn.dataset.val = h.val;
-  // 첫 번째 항목(모름)은 2열 전체 차지
-  if (idx === 0) btn.style.cssText = 'grid-column:1/-1;padding:11px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:0.9rem;text-align:left;font-family:inherit;transition:all .15s;';
-  else           btn.style.cssText = 'padding:11px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:0.9rem;text-align:left;font-family:inherit;transition:all .15s;';
-  btn.onclick = () => {
-    state.hour = h.val;
-    document.querySelectorAll('#hour-list button').forEach(b => {
-      b.style.borderColor = 'var(--border)';
-      b.style.background  = 'var(--surface)';
-      b.style.color       = 'var(--text)';
+// ── 시각 버튼 렌더 (2열 그리드) ─────────────────────────────────────────────
+const hourList=document.getElementById('hour-list');
+HOURS.forEach((h,idx)=>{
+  const btn=document.createElement('button');
+  btn.textContent=h.label;
+  btn.dataset.val=h.val;
+  var base='padding:11px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:0.88rem;text-align:left;font-family:inherit;transition:all .15s;';
+  btn.style.cssText = idx===0 ? 'grid-column:1/-1;'+base : base;
+  btn.onclick=()=>{
+    state.hour=h.val;
+    document.querySelectorAll('#hour-list button').forEach(b=>{
+      b.style.borderColor='var(--border)';b.style.background='var(--surface)';b.style.color='var(--text)';
     });
-    btn.style.borderColor = 'var(--accent)';
-    btn.style.background  = 'rgba(124,58,237,0.15)';
-    btn.style.color       = 'var(--accent-light)';
+    btn.style.borderColor='var(--accent)';
+    btn.style.background='rgba(124,58,237,0.15)';
+    btn.style.color='var(--accent-light)';
   };
   hourList.appendChild(btn);
 });
-// 기본값 모름 선택
 hourList.querySelector('button').click();
 
-function selectGender(g) {
-  state.gender = g;
-  document.querySelectorAll('.gender-btn').forEach(b => {
-    const sel = b.dataset.val === g;
-    b.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
-    b.style.background  = sel ? 'rgba(124,58,237,0.15)' : 'var(--surface)';
-    b.style.color       = sel ? 'var(--accent-light)' : 'var(--text)';
+// ── 공통 함수 ────────────────────────────────────────────────────────────────
+function selectGender(g){
+  state.gender=g;
+  document.querySelectorAll('.gender-btn').forEach(b=>{
+    var sel=b.dataset.val===g;
+    b.style.borderColor=sel?'var(--accent)':'var(--border)';
+    b.style.background=sel?'rgba(124,58,237,0.15)':'var(--surface)';
+    b.style.color=sel?'var(--accent-light)':'var(--text)';
   });
 }
+function showErr(msg){var el=document.getElementById('err-msg');el.textContent=msg;el.style.display='block';}
+function hideErr(){document.getElementById('err-msg').style.display='none';}
 
-function showErr(msg) {
-  const el = document.getElementById('err-msg');
-  el.textContent = msg; el.style.display = 'block';
-}
-function hideErr() { document.getElementById('err-msg').style.display = 'none'; }
-
-function validate() {
-  if (state.step === 0 && !state.gender) return '성별을 선택해주세요.';
-  if (state.step === 1) {
-    const y = Number(document.getElementById('inp-year').value);
-    const m = Number(document.getElementById('inp-month').value);
-    const d = Number(document.getElementById('inp-day').value);
-    if (!y || y < 1930 || y > 2010) return '출생 연도를 확인해주세요. (1930~2010)';
-    if (!m || m < 1 || m > 12)       return '월을 확인해주세요.';
-    if (!d || d < 1 || d > 31)       return '일을 확인해주세요.';
-    if (state.calType === 'lunar') {
-      const solar = lunarToSolar(y, m, d);
-      state.year = solar.year; state.month = solar.month; state.day = solar.day;
-      state.lunarYear = y; state.lunarMonth = m; state.lunarDay = d;
+function validate(){
+  if(state.step===0&&!state.gender) return '성별을 선택해주세요.';
+  if(state.step===1){
+    var y=Number(document.getElementById('inp-year').value);
+    var m=Number(document.getElementById('inp-month').value);
+    var d=Number(document.getElementById('inp-day').value);
+    if(!y||y<1930||y>2010) return '출생 연도를 확인해주세요. (1930~2010)';
+    if(!m||m<1||m>12)       return '월을 확인해주세요.';
+    if(!d||d<1||d>31)       return '일을 확인해주세요.';
+    if(state.calType==='lunar'){
+      var solar=lunarToSolar(d,m,y,false);
+      if(!solar||solar.year===0) return '음력 날짜 변환에 실패했습니다. 날짜를 다시 확인해주세요.';
+      state.lunarYear=y; state.lunarMonth=m; state.lunarDay=d;
+      state.year=solar.year; state.month=solar.month; state.day=solar.day;
     } else {
-      state.year = y; state.month = m; state.day = d;
-      state.lunarYear = null;
+      state.year=y; state.month=m; state.day=d;
+      state.lunarYear=null; state.lunarMonth=null; state.lunarDay=null;
     }
   }
   return '';
 }
 
-function updateStepBar() {
-  const bars = document.querySelectorAll('.step-bar-item');
-  bars.forEach((b, i) => b.style.background = i <= state.step ? 'var(--accent)' : 'var(--border)');
-  document.getElementById('step-label').textContent = `STEP ${state.step + 1} / 4`;
-  document.getElementById('btn-prev').style.display = state.step > 0 ? 'block' : 'none';
-  document.getElementById('btn-next').textContent   = state.step === 3 ? '풀이 시작 →' : '다음';
+function updateStepBar(){
+  document.querySelectorAll('.step-bar-item').forEach((b,i)=>b.style.background=i<=state.step?'var(--accent)':'var(--border)');
+  document.getElementById('step-label').textContent=`STEP ${state.step+1} / 4`;
+  document.getElementById('btn-prev').style.display=state.step>0?'block':'none';
+  document.getElementById('btn-next').textContent=state.step===3?'풀이 시작 →':'다음';
 }
 
-function showStep(n) {
-  document.querySelectorAll('.step-panel').forEach(p => p.style.display = 'none');
-  const panel = document.getElementById(`step-${n}`);
-  panel.style.display = 'block';
+function showStep(n){
+  document.querySelectorAll('.step-panel').forEach(p=>p.style.display='none');
+  var panel=document.getElementById('step-'+n);
+  panel.style.display='block';
   panel.classList.remove('fade-up');
   void panel.offsetWidth;
   panel.classList.add('fade-up');
 }
 
-function buildConfirm() {
-  const HOUR_LABEL = HOURS.find(h => h.val === state.hour)?.label || '';
-  const calLabel = state.calType === 'solar' ? '양력' : '음력';
-  const dateDisplay = state.calType === 'lunar' && state.lunarYear
-    ? `음력 ${state.lunarYear}년 ${state.lunarMonth}월 ${state.lunarDay}일 → 양력 ${state.year}년 ${state.month}월 ${state.day}일`
-    : `${state.year}년 ${state.month}월 ${state.day}일 (양력)`;
-  document.getElementById('confirm-box').innerHTML = [
-    ['성별', state.gender === 'male' ? '남성' : '여성'],
-    ['생년월일', dateDisplay],
-    ['태어난 시각', HOUR_LABEL],
-  ].map(([k,v]) => `
+function buildConfirm(){
+  var HOUR_LABEL=HOURS.find(h=>h.val===state.hour)?.label||'';
+  var dateDisplay=state.calType==='lunar'&&state.lunarYear
+    ?`음력 ${state.lunarYear}년 ${state.lunarMonth}월 ${state.lunarDay}일 → 양력 ${state.year}년 ${state.month}월 ${state.day}일`
+    :`${state.year}년 ${state.month}월 ${state.day}일 (양력)`;
+  document.getElementById('confirm-box').innerHTML=[
+    ['성별',state.gender==='male'?'남성':'여성'],
+    ['생년월일',dateDisplay],
+    ['태어난 시각',HOUR_LABEL],
+  ].map(([k,v])=>`
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
       <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0;">${k}</span>
-      <span style="font-weight:600;text-align:right;font-size:0.9rem;">${v}</span>
+      <span style="font-weight:600;text-align:right;font-size:0.88rem;">${v}</span>
     </div>`).join('');
 }
 
-function nextStep() {
-  const err = validate();
-  if (err) { showErr(err); return; }
+function nextStep(){
+  var err=validate();
+  if(err){showErr(err);return;}
   hideErr();
-  if (state.step === 3) { submit(); return; }
+  if(state.step===3){submit();return;}
   state.step++;
-  if (state.step === 3) buildConfirm();
+  if(state.step===3)buildConfirm();
   showStep(state.step);
   updateStepBar();
 }
 
-function prevStep() {
-  if (state.step === 0) return;
+function prevStep(){
+  if(state.step===0)return;
   state.step--;
   showStep(state.step);
   updateStepBar();
   hideErr();
 }
 
-function submit() {
-  const p = new URLSearchParams({
-    gender:   state.gender,
-    year:     state.year,
-    month:    state.month,
-    day:      state.day,
-    hour:     state.hour,
-    caltype:  state.calType,
+function submit(){
+  var p=new URLSearchParams({
+    gender:state.gender,year:state.year,month:state.month,day:state.day,hour:state.hour,
+    caltype:state.calType,
   });
-  location.href = `result.html?${p.toString()}`;
+  location.href='result.html?'+p.toString();
 }
 
 updateStepBar();
