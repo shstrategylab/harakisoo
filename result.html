@@ -84,6 +84,11 @@ tabBar.querySelectorAll('.tab-btn').forEach((btn,i) => {
   btn.setAttribute('onclick', `switchTab('${TABS[i].id}')`);
 });
 
+// ── 안내 박스 ─────────────────────────────────────────────
+function infoBox(text) {
+  return `<div style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:.83rem;color:var(--text-muted);line-height:1.8;">${text}</div>`;
+}
+
 // ── 결과 렌더링 함수들 ─────────────────────────────────────
 function guaCard(gua, lines, highlightPos, badge, extra='') {
   return `
@@ -264,8 +269,11 @@ async function main() {
   yy._label = `올해 ${currentYear}년 유년괘`;
 
   // ── 개요 탭
-  document.getElementById('tab-overview').innerHTML = `
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+  document.getElementById('tab-overview').innerHTML =
+    infoBox(`하락이수(河洛理數)는 사주의 천간·지지를 숫자로 변환해 주역 64괘로 인생을 읽는 운명학입니다.<br>
+<strong style="color:var(--text);">선천괘</strong>는 타고난 기질과 인생 전반, <strong style="color:var(--text);">후천괘</strong>는 경험으로 만들어지는 인생 후반을 나타냅니다.
+각 탭에서 더 자세한 설명과 해석을 확인하세요. 심층 풀이가 필요하면 아래 <strong style="color:var(--text);">Claude 프롬프트</strong>를 복사해 claude.ai에 붙여넣으세요.`) +
+    `<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
       ${guaCard(sc, sc.lines, wondang, `원당효 ${wondang}효`)}
       ${guaCard(hc, hc.lines, null, '')}
     </div>
@@ -283,14 +291,26 @@ async function main() {
     ${promptBox(RESULT)}`;
 
   // ── 선천괘 탭
-  document.getElementById('tab-seoncheon').innerHTML = detailCard(sc, sc.lines, wondang, wondangYao, `원당효(元堂爻) · ${wondang}효`);
+  document.getElementById('tab-seoncheon').innerHTML =
+    infoBox(`<strong style="color:var(--text);">선천괘(先天卦)란?</strong><br>
+태어날 때부터 타고난 기질·재능·인생 전반(약 40세 이전)의 큰 흐름을 나타냅니다. 바꿀 수 없는 본래의 성품과 이 생에서 주어진 과제가 담겨 있습니다.<br><br>
+<strong style="color:var(--text);">원당효(元堂爻)란?</strong><br>
+선천괘의 6개 효(爻) 중 나의 핵심 에너지가 집중된 자리입니다. 가장 중요한 효로, 인생의 주된 기질과 강점을 읽는 핵심 지점입니다.`) +
+    detailCard(sc, sc.lines, wondang, wondangYao, `원당효(元堂爻) · ${wondang}효`);
 
   // ── 후천괘 탭
-  document.getElementById('tab-hucheon').innerHTML = detailCard(hc, hc.lines, null, null, '');
+  document.getElementById('tab-hucheon').innerHTML =
+    infoBox(`<strong style="color:var(--text);">후천괘(後天卦)란?</strong><br>
+살면서 경험과 노력으로 만들어지는 인생 후반(약 40세 이후)의 흐름입니다. 선천괘가 타고난 씨앗이라면, 후천괘는 그 씨앗이 자라 맺은 열매의 모습입니다.<br><br>
+선천괘와 같은 괘가 나오면 전·후반이 일관된 인생이고, 다른 괘가 나오면 인생 후반에 새로운 전환이 찾아옴을 뜻합니다.`) +
+    detailCard(hc, hc.lines, null, null, '');
 
   // ── 유년괘 탭
-  document.getElementById('tab-yunnyeon').innerHTML = `
-    <div class="card" style="border-color:var(--gold);margin-bottom:16px;">
+  document.getElementById('tab-yunnyeon').innerHTML =
+    infoBox(`<strong style="color:var(--text);">올해 운(流年卦)이란?</strong><br>
+선천괘의 효를 나이에 따라 한 칸씩 올라가며 읽는 방식입니다. 양효(—)는 9년, 음효(--)는 6년을 지배하며, 올해 내 나이가 속한 효가 바로 지금의 운입니다.<br><br>
+괘사는 괘 전체의 분위기를, 효사(爻辭)는 지금 이 시점 나에게 해당하는 구체적인 메시지를 담고 있습니다.`) +
+    `<div class="card" style="border-color:var(--gold);margin-bottom:16px;">
       <p style="font-size:.72rem;color:var(--gold);margin-bottom:12px;">${currentYear}년 유년괘</p>
       <div style="display:flex;gap:24px;align-items:center;margin-bottom:18px;">
         ${Harakisu.renderYao(sc.lines, yy.yaoPos, 'lg')}
@@ -306,10 +326,14 @@ async function main() {
     ${promptBox(RESULT)}`;
 
   // ── 타임라인 탭
-  document.getElementById('tab-timeline').innerHTML = `
-    <div class="card" style="margin-bottom:16px;">
+  document.getElementById('tab-timeline').innerHTML =
+    infoBox(`<strong style="color:var(--text);">대운 흐름이란?</strong><br>
+선천괘의 6효를 1효부터 차례로 올라가며 평생의 운 흐름을 나눈 것입니다. 양효(━)가 나오는 구간은 <strong style="color:#818cf8;">9년</strong>이 지배하고, 음효(- -)가 나오는 구간은 <strong style="color:#f472b6;">6년</strong>이 지배합니다.<br><br>
+각 구간의 <strong style="color:var(--text);">괘 번호 + 효 위치</strong>가 그 기간의 핵심 에너지입니다. 64괘 사전에서 해당 괘를 찾아 그 효사(爻辭)를 읽으면 구체적인 의미를 확인할 수 있습니다.<br>
+선천괘의 효를 다 올라가면 후천괘로 넘어가 같은 방식으로 계속됩니다.`) +
+    `<div class="card" style="margin-bottom:16px;">
       <h3 style="font-weight:700;margin-bottom:6px;">평생 대운 타임라인</h3>
-      <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:18px;">양효(—)는 9년, 음효(--)는 6년 지배. 보라색이 현재 구간입니다.</p>
+      <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:18px;">양효(—)는 9년, 음효(--)는 6년 지배. 보라색 테두리가 현재 구간입니다.</p>
       ${timelineHtml(timeline, birthYear)}
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -319,8 +343,14 @@ async function main() {
   // ── 수리 탭
   const suriRows = [...suri.chunganList.map((s,i)=>({label:`${['연','월','일','시'][i]}간 ${s.char}`, su:s.su, color:'var(--accent-light)'})),
                     ...suri.jijiList.map((s,i)=>({label:`${['연','월','일','시'][i]}지 ${s.char}`, su:s.su, color:'#f472b6'}))];
-  document.getElementById('tab-suri').innerHTML = `
-    <div class="card">
+  document.getElementById('tab-suri').innerHTML =
+    infoBox(`<strong style="color:var(--text);">수리(數理)란?</strong><br>
+사주의 천간(天干)과 지지(地支) 각 글자에 고유한 숫자를 배정한 뒤, 그 합으로 괘를 도출하는 계산 과정입니다.<br><br>
+<strong style="color:var(--accent-light);">천수(天數)</strong>는 천간의 홀수 합으로 상괘(上卦·위 3효)를 결정하고,
+<strong style="color:#f472b6;">지수(地數)</strong>는 지지의 짝수 합으로 하괘(下卦·아래 3효)를 결정합니다.<br>
+남성은 천수→상괘, 지수→하괘 / 여성은 반대로 적용합니다.<br><br>
+8로 나눈 나머지가 8개 소성괘(건·태·이·진·손·감·간·곤) 중 하나에 배정되고, 상괘+하괘가 합쳐져 64괘 중 하나의 선천괘가 만들어집니다.`) +
+    `<div class="card">
       <h3 style="font-weight:700;margin-bottom:16px;">수리 변환 과정</h3>
       <div class="grid-2" style="margin-bottom:20px;">
         ${suriRows.map(r=>`
