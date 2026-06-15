@@ -169,20 +169,81 @@ function timelineHtml(tl, birthYear) {
 function timelineListHtml(tl, birthYear) {
   const curYear = new Date().getFullYear();
   const korAge  = curYear - birthYear + 1;
+
+  // 대운 시기별 인생 단계 레이블
+  function lifeStage(startAge) {
+    if (startAge <= 10)  return '유년기 · 기질 형성';
+    if (startAge <= 20)  return '청소년기 · 가능성 탐색';
+    if (startAge <= 30)  return '청년기 · 도전과 시작';
+    if (startAge <= 40)  return '장년 초반 · 성취와 확장';
+    if (startAge <= 50)  return '장년 중반 · 전환과 깊이';
+    if (startAge <= 60)  return '중년기 · 결실과 성숙';
+    if (startAge <= 70)  return '초로기 · 지혜와 정리';
+    return '노년기 · 완성과 회귀';
+  }
+
+  // 양효/음효 기운 설명
+  function yaoEnergy(yang) {
+    return yang
+      ? '양효(━) 구간 — 적극적·외향적 에너지가 강합니다. 도전·확장·표출의 시기입니다.'
+      : '음효(- -) 구간 — 수용적·내향적 에너지가 강합니다. 수렴·준비·내실의 시기입니다.';
+  }
+
   return tl.map(t => {
-    const isCur = korAge >= t.startAge && korAge <= t.endAge;
+    const isCur  = korAge >= t.startAge && korAge <= t.endAge;
+    const guaInfo = Harakisu.DB.dansa?.[t.gua] || Harakisu.DB.dansa?.[String(t.gua)] || {};
+    const yaoInfo = Harakisu.DB.yao?.[t.gua]?.lines?.[t.yaoPos]
+                 || Harakisu.DB.yao?.[String(t.gua)]?.lines?.[t.yaoPos] || {};
+    const guaLines = Harakisu.GUA_LINES[t.gua] || [];
+
     return `
-    <div class="card" style="display:flex;gap:14px;align-items:center;border-color:${isCur?'var(--accent)':'var(--border)'};background:${isCur?'rgba(124,58,237,.1)':'var(--surface)'};">
-      ${Harakisu.renderYao([t.yang?1:0], null, 'sm')}
-      <div style="flex:1;">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
-          <span style="font-weight:700;">${t.startAge}~${t.endAge}세</span>
-          <span style="font-size:.72rem;color:var(--text-muted);">(${t.startYear}~${t.endYear})</span>
-          ${isCur ? '<span style="font-size:.7rem;background:var(--accent);color:#fff;padding:1px 8px;border-radius:20px;">현재</span>' : ''}
-          ${t.isHc ? '<span style="font-size:.7rem;color:var(--gold);">후천</span>' : ''}
+    <div class="card" style="border-color:${isCur?'var(--accent)':'var(--border)'};background:${isCur?'rgba(124,58,237,.08)':'var(--surface)'};">
+
+      <!-- 헤더 -->
+      <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;">
+        ${Harakisu.renderYao(guaLines, t.yaoPos, 'sm')}
+        <div style="flex:1;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-weight:800;font-size:1rem;">${t.startAge}~${t.endAge}세</span>
+            <span style="font-size:.72rem;color:var(--text-muted);">(${t.startYear}~${t.endYear}년)</span>
+            ${isCur ? '<span style="font-size:.7rem;background:var(--accent);color:#fff;padding:1px 8px;border-radius:20px;">▶ 현재</span>' : ''}
+            ${t.isHc ? '<span style="font-size:.7rem;color:var(--gold);border:1px solid var(--gold);padding:1px 7px;border-radius:20px;">후천</span>' : ''}
+          </div>
+          <div style="font-size:.78rem;color:var(--text-muted);">${lifeStage(t.startAge)} · ${t.yang?'양효 9년':'음효 6년'}</div>
         </div>
-        <p style="font-size:.85rem;color:var(--text-muted);">${t.gua}번괘 ${t.yaoPos}효 · ${t.yang?'양효 9년':'음효 6년'}</p>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:1rem;font-weight:800;color:${isCur?'var(--accent-light)':'var(--text)'};">${guaInfo.name||t.gua+'번괘'}</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">${t.gua}번괘 ${t.yaoPos}효</div>
+        </div>
       </div>
+
+      <!-- 이 시기의 에너지 -->
+      <div style="font-size:.8rem;color:${t.yang?'#818cf8':'#f472b6'};margin-bottom:10px;padding:6px 10px;background:${t.yang?'rgba(129,140,248,.08)':'rgba(244,114,182,.08)'};border-radius:6px;">
+        ${yaoEnergy(t.yang)}
+      </div>
+
+      <!-- 괘 해석 -->
+      ${guaInfo.practical ? `
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:2px;">
+        <p style="font-size:.68rem;color:var(--text-muted);margin-bottom:4px;">이 시기의 핵심 기운 (${guaInfo.name})</p>
+        <p style="font-size:.85rem;line-height:1.75;">${guaInfo.practical}</p>
+      </div>` : ''}
+
+      <!-- 효사 -->
+      ${yaoInfo.text_ko ? `
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px;">
+        <p style="font-size:.68rem;color:var(--gold);margin-bottom:4px;">${t.yaoPos}효 메시지</p>
+        <p style="font-size:.85rem;font-weight:600;margin-bottom:4px;">${yaoInfo.text_ko}</p>
+        ${yaoInfo.comment_ko ? `<p style="font-size:.82rem;color:var(--text-muted);line-height:1.7;">${yaoInfo.comment_ko}</p>` : ''}
+      </div>` : ''}
+
+      <!-- 주의사항 -->
+      ${guaInfo.caution ? `
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px;">
+        <p style="font-size:.68rem;color:#f87171;margin-bottom:4px;">⚠ 이 시기 주의사항</p>
+        <p style="font-size:.82rem;color:var(--text-muted);line-height:1.7;">${guaInfo.caution}</p>
+      </div>` : ''}
+
     </div>`;
   }).join('');
 }
@@ -485,27 +546,6 @@ async function main() {
           <div style="padding:12px 14px;background:var(--surface2);border-radius:8px;">
             <p style="font-size:.72rem;color:var(--gold);margin-bottom:4px;">합계 ${total} — 전체 에너지 총량</p>
             <p style="font-size:.85rem;line-height:1.7;">${totalComment}</p>
-          </div>
-          <div style="margin-top:16px;padding:16px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.25);border-radius:10px;">
-            <p style="font-size:.75rem;color:var(--accent-light);margin-bottom:8px;">✦ 이 사람의 수리 종합 해석</p>
-            <p style="font-size:.88rem;line-height:1.9;color:var(--text);">${(()=>{
-              // 천수·지수 균형 유형 판단
-              const ratio = cs / (js || 1);
-              let balance = '';
-              if (ratio >= 1.5)      balance = `천수(${cs})가 지수(${js})보다 크게 높아, 하늘의 기운—추진력·의지·표현—이 삶을 주도합니다. 현실 기반보다 방향과 의지로 밀어가는 스타일이며, 때로 현실적 준비가 부족해 보일 수 있습니다.`;
-              else if (ratio <= 0.67) balance = `지수(${js})가 천수(${cs})보다 크게 높아, 땅의 기운—현실감각·안정·수용—이 삶을 지배합니다. 탄탄한 기반 위에서 움직이지만, 때로 과감한 도전보다 안정을 먼저 찾는 경향이 있습니다.`;
-              else                    balance = `천수(${cs})와 지수(${js})가 비교적 균형을 이룹니다. 추진력과 현실 감각이 서로를 보완하며, 이상과 현실 사이에서 유연하게 조율하는 능력이 있습니다.`;
-
-              // 성별에 따른 괘 적용 설명
-              const guaApply = gender === 'male'
-                ? `남성이므로 천수 ${cs}로 상괘를, 지수 ${js}로 하괘를 결정했습니다.`
-                : `여성이므로 지수 ${js}로 상괘를, 천수 ${cs}로 하괘를 결정했습니다.`;
-
-              // 원당효 의미
-              const wondangDesc = `원당효는 천수·지수 합계 ${total}을 6으로 나눈 나머지 ${total%6||6}효로, 선천괘 ${sc.name} 중 ${wondang}효가 핵심 에너지 자리입니다.`;
-
-              return `${balance}<br><br>${guaApply} ${wondangDesc}`;
-            })()}</p>
           </div>`;
       })()}
     </div>`;
