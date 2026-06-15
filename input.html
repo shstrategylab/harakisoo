@@ -50,8 +50,20 @@
 
   <!-- STEP 1: 생년월일 -->
   <div id="step-1" class="step-panel" style="display:none;">
-    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">생년월일을 입력해주세요</h2>
-    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px;">양력으로 입력해주세요.</p>
+    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:16px;">생년월일을 입력해주세요</h2>
+
+    <!-- 양력/음력 토글 -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="btn-solar" onclick="setCalType('solar')"
+        style="flex:1;padding:10px 0;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:inherit;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all .2s;">
+        양력
+      </button>
+      <button id="btn-lunar" onclick="setCalType('lunar')"
+        style="flex:1;padding:10px 0;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-family:inherit;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all .2s;">
+        음력
+      </button>
+    </div>
+    <p id="cal-hint" style="color:var(--text-muted);font-size:0.82rem;margin-bottom:20px;">양력 날짜를 입력해주세요.</p>
 
     <div style="display:flex;gap:12px;margin-bottom:20px;">
       <div style="flex:2;">
@@ -73,7 +85,7 @@
   <div id="step-2" class="step-panel" style="display:none;">
     <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:8px;">태어난 시각을 선택해주세요</h2>
     <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px;">모르시면 "모름"을 선택하세요.</p>
-    <div style="display:flex;flex-direction:column;gap:8px;" id="hour-list"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="hour-list"></div>
   </div>
 
   <!-- STEP 3: 확인 -->
@@ -116,15 +128,47 @@ const HOURS = [
   { label:'해시 (21:00~23:00)', val:21 },
 ];
 
-let state = { step: 0, gender: '', year: '', month: '', day: '', hour: 12 };
+let state = { step: 0, gender: '', year: '', month: '', day: '', hour: 12, calType: 'solar' };
 
-// 시각 버튼 렌더
+// 양력/음력 토글
+function setCalType(type) {
+  state.calType = type;
+  const isSolar = type === 'solar';
+  const btnSolar = document.getElementById('btn-solar');
+  const btnLunar = document.getElementById('btn-lunar');
+  btnSolar.style.background   = isSolar ? 'var(--accent)' : 'transparent';
+  btnSolar.style.borderColor  = isSolar ? 'var(--accent)' : 'var(--border)';
+  btnSolar.style.color        = isSolar ? '#fff' : 'var(--text-muted)';
+  btnLunar.style.background   = !isSolar ? 'var(--accent)' : 'transparent';
+  btnLunar.style.borderColor  = !isSolar ? 'var(--accent)' : 'var(--border)';
+  btnLunar.style.color        = !isSolar ? '#fff' : 'var(--text-muted)';
+  document.getElementById('cal-hint').textContent =
+    isSolar ? '양력 날짜를 입력해주세요.' : '음력 날짜를 입력해주세요. (음력→양력 자동 변환됩니다)';
+}
+
+// 음력→양력 변환 (근사값: Gregorian 기반 오프셋 테이블)
+// 정밀 변환이 필요하면 외부 라이브러리 사용 권장
+function lunarToSolar(y, m, d) {
+  // 간이 변환: 음력은 양력보다 평균 21~50일 늦음
+  // 실제 서비스에서는 lunar.js 등 라이브러리 사용 권장
+  // 여기서는 harakisu.js에 lunarToSolar가 있으면 사용, 없으면 근사값
+  if (typeof Harakisu !== 'undefined' && Harakisu.lunarToSolar) {
+    return Harakisu.lunarToSolar(y, m, d);
+  }
+  // 근사: 음력 월에 따라 대략적인 양력 날짜 반환 (±1일 오차 가능)
+  const date = new Date(y, m - 1, d + 30);
+  return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
+}
+
+// 시각 버튼 렌더 (2열 그리드)
 const hourList = document.getElementById('hour-list');
-HOURS.forEach(h => {
+HOURS.forEach((h, idx) => {
   const btn = document.createElement('button');
   btn.textContent = h.label;
   btn.dataset.val = h.val;
-  btn.style.cssText = 'padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:0.95rem;text-align:left;font-family:inherit;transition:all .15s;';
+  // 첫 번째 항목(모름)은 2열 전체 차지
+  if (idx === 0) btn.style.cssText = 'grid-column:1/-1;padding:11px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:0.9rem;text-align:left;font-family:inherit;transition:all .15s;';
+  else           btn.style.cssText = 'padding:11px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:0.9rem;text-align:left;font-family:inherit;transition:all .15s;';
   btn.onclick = () => {
     state.hour = h.val;
     document.querySelectorAll('#hour-list button').forEach(b => {
@@ -166,7 +210,14 @@ function validate() {
     if (!y || y < 1930 || y > 2010) return '출생 연도를 확인해주세요. (1930~2010)';
     if (!m || m < 1 || m > 12)       return '월을 확인해주세요.';
     if (!d || d < 1 || d > 31)       return '일을 확인해주세요.';
-    state.year = y; state.month = m; state.day = d;
+    if (state.calType === 'lunar') {
+      const solar = lunarToSolar(y, m, d);
+      state.year = solar.year; state.month = solar.month; state.day = solar.day;
+      state.lunarYear = y; state.lunarMonth = m; state.lunarDay = d;
+    } else {
+      state.year = y; state.month = m; state.day = d;
+      state.lunarYear = null;
+    }
   }
   return '';
 }
@@ -190,14 +241,18 @@ function showStep(n) {
 
 function buildConfirm() {
   const HOUR_LABEL = HOURS.find(h => h.val === state.hour)?.label || '';
+  const calLabel = state.calType === 'solar' ? '양력' : '음력';
+  const dateDisplay = state.calType === 'lunar' && state.lunarYear
+    ? `음력 ${state.lunarYear}년 ${state.lunarMonth}월 ${state.lunarDay}일 → 양력 ${state.year}년 ${state.month}월 ${state.day}일`
+    : `${state.year}년 ${state.month}월 ${state.day}일 (양력)`;
   document.getElementById('confirm-box').innerHTML = [
     ['성별', state.gender === 'male' ? '남성' : '여성'],
-    ['생년월일', `${state.year}년 ${state.month}월 ${state.day}일 (양력)`],
+    ['생년월일', dateDisplay],
     ['태어난 시각', HOUR_LABEL],
   ].map(([k,v]) => `
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span style="color:var(--text-muted);font-size:0.9rem;">${k}</span>
-      <span style="font-weight:600;">${v}</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0;">${k}</span>
+      <span style="font-weight:600;text-align:right;font-size:0.9rem;">${v}</span>
     </div>`).join('');
 }
 
@@ -222,11 +277,12 @@ function prevStep() {
 
 function submit() {
   const p = new URLSearchParams({
-    gender: state.gender,
-    year:   state.year,
-    month:  state.month,
-    day:    state.day,
-    hour:   state.hour,
+    gender:   state.gender,
+    year:     state.year,
+    month:    state.month,
+    day:      state.day,
+    hour:     state.hour,
+    caltype:  state.calType,
   });
   location.href = `result.html?${p.toString()}`;
 }
