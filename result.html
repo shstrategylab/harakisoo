@@ -375,6 +375,83 @@ async function main() {
           (${suri.cheonsu}+${suri.jisu}) ÷ 6 = 나머지 ${(suri.cheonsu+suri.jisu)%6||6} → ${wondang}효
         </p>
       </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3 style="font-weight:700;margin-bottom:16px;">각 글자의 수리 의미</h3>
+      ${(()=>{
+        const CHAR_MEANING = {
+          甲:'8 · 강한 추진력과 독립심. 새로운 시작을 주도하는 기질.',
+          乙:'4 · 유연한 적응력. 관계 속에서 실리를 챙기는 능력.',
+          丙:'9 · 밝고 화려한 표현력. 주목받고 드러나는 에너지.',
+          丁:'3 · 섬세한 내면과 직관. 깊이 파고드는 집중력.',
+          戊:'2 · 안정과 포용. 중심을 잡고 주변을 품는 기질.',
+          己:'1 · 자기 원칙과 신중함. 내실을 다지는 힘.',
+          庚:'7 · 결단력과 의지. 강하게 밀어붙이는 추진 에너지.',
+          辛:'6 · 정밀함과 완벽주의. 섬세하게 다듬는 기질.',
+          壬:'5 · 유동적이고 지혜로운 통찰. 흐름을 읽는 능력.',
+          癸:'10 · 완성과 마무리. 깊은 사유와 영적 감수성.',
+          子:'9 · 기운이 응축된 시작. 잠재력이 폭발하기 직전.',
+          丑:'8 · 묵묵히 쌓아가는 인내. 느리지만 단단한 성장.',
+          寅:'7 · 용맹한 도전과 활동성. 움직이고 개척하는 힘.',
+          卯:'6 · 부드럽고 빠른 성장. 인간관계와 소통의 재능.',
+          辰:'5 · 변화를 품는 포용력. 전환점에서 방향을 잡는 능력.',
+          巳:'4 · 통찰과 지혜. 깊이 생각하고 전략적으로 움직임.',
+          午:'9 · 최고조의 에너지. 화려하게 빛나고 드러나는 시기.',
+          未:'8 · 성숙과 결실. 내면의 깊이가 삶에 배어나오는 기질.',
+          申:'7 · 날카로운 판단력. 빠르게 결정하고 실행하는 능력.',
+          酉:'6 · 정제된 아름다움과 완성도. 마무리를 잘하는 힘.',
+          戌:'5 · 변화와 전환을 수용. 삶의 고비마다 재정비하는 능력.',
+          亥:'4 · 깊은 내면의 힘. 조용히 에너지를 모으는 준비의 기질.',
+        };
+        const allChars = [
+          ...suri.chunganList.map((s,i)=>({char:s.char, su:s.su, label:`${['연','월','일','시'][i]}간`, color:'var(--accent-light)'})),
+          ...suri.jijiList.map((s,i)=>({char:s.char, su:s.su, label:`${['연','월','일','시'][i]}지`, color:'#f472b6'})),
+        ];
+        return allChars.map(c=>`
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
+              <span style="font-size:1.1rem;font-weight:800;color:${c.color};">${c.char}</span>
+              <span style="font-size:.72rem;color:var(--text-muted);">${c.label} · 수리 ${c.su}</span>
+            </div>
+            <p style="font-size:.83rem;color:var(--text-muted);line-height:1.7;">${CHAR_MEANING[c.char]||'—'}</p>
+          </div>`).join('');
+      })()}
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3 style="font-weight:700;margin-bottom:14px;">천수 · 지수 총평</h3>
+      ${(()=>{
+        const cs = suri.cheonsu, js = suri.jisu, total = cs + js;
+        const csComment = cs <= 15
+          ? '천수가 낮은 편입니다. 강하게 밀어붙이기보다 내실을 다지고 협력하는 방식이 잘 맞습니다.'
+          : cs <= 25
+          ? '천수가 중간 범위입니다. 추진력과 신중함이 균형을 이루며, 상황에 따라 유연하게 대응합니다.'
+          : '천수가 높은 편입니다. 강한 추진력과 독립적인 기질을 가지며, 주도적으로 일을 이끌어가는 힘이 있습니다.';
+        const jsComment = js <= 15
+          ? '지수가 낮은 편입니다. 현실적 안정보다 변화와 이상을 추구하는 경향이 있습니다.'
+          : js <= 25
+          ? '지수가 중간 범위입니다. 현실 감각과 이상 사이에서 균형을 잡아가는 기질입니다.'
+          : '지수가 높은 편입니다. 현실적이고 안정 지향적이며, 꾸준히 기반을 쌓아가는 능력이 뛰어납니다.';
+        const totalComment = total <= 30
+          ? '전체 에너지 총량이 낮습니다. 소수에 집중하고 에너지를 아끼며 깊이 있게 파고드는 삶이 유리합니다.'
+          : total <= 50
+          ? '균형 잡힌 에너지 총량입니다. 다양한 분야에서 고루 능력을 발휘할 수 있는 구조입니다.'
+          : '에너지 총량이 높습니다. 활동 범위가 넓고 여러 방면으로 에너지를 쏟는 삶을 살게 됩니다.';
+        return `
+          <div style="padding:12px 14px;background:var(--surface2);border-radius:8px;margin-bottom:8px;">
+            <p style="font-size:.72rem;color:var(--accent-light);margin-bottom:4px;">천수 ${cs} — 하늘의 기운 (추진·의지·표현)</p>
+            <p style="font-size:.85rem;line-height:1.7;">${csComment}</p>
+          </div>
+          <div style="padding:12px 14px;background:var(--surface2);border-radius:8px;margin-bottom:8px;">
+            <p style="font-size:.72rem;color:#f472b6;margin-bottom:4px;">지수 ${js} — 땅의 기운 (현실·안정·수용)</p>
+            <p style="font-size:.85rem;line-height:1.7;">${jsComment}</p>
+          </div>
+          <div style="padding:12px 14px;background:var(--surface2);border-radius:8px;">
+            <p style="font-size:.72rem;color:var(--gold);margin-bottom:4px;">합계 ${total} — 전체 에너지 총량</p>
+            <p style="font-size:.85rem;line-height:1.7;">${totalComment}</p>
+          </div>`;
+      })()}
     </div>`;
 
   // 로딩 숨기기
