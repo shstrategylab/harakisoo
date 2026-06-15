@@ -117,11 +117,9 @@ input:focus, textarea:focus, select:focus {
 
 /* 효 시각화 */
 .yao-wrap { display: flex; flex-direction: column-reverse; gap: 4px; }
-.yao-line  { display: flex; gap: 4px; align-items: center; }
-.yao-yang  { height: 14px; background: var(--accent-light); border-radius: 3px; }
-.yao-yin   { height: 14px; background: var(--accent-light); border-radius: 3px; }
-.yao-yang.lg { height: 18px; }
-.yao-yin.lg  { height: 18px; }
+.yao-line  { display: flex; align-items: center; }
+.yao-yang  { background: var(--accent-light); border-radius: 3px; flex-shrink: 0; }
+.yao-yin   { background: var(--accent-light); border-radius: 3px; flex-shrink: 0; }
 .yao-gold  { background: var(--gold) !important; }
 
 /* 애니메이션 */
