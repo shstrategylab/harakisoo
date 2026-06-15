@@ -378,44 +378,79 @@ async function main() {
     </div>
 
     <div class="card" style="margin-top:16px;">
-      <h3 style="font-weight:700;margin-bottom:16px;">각 글자의 수리 의미</h3>
+      <h3 style="font-weight:700;margin-bottom:6px;">각 글자의 수리 풀이</h3>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:16px;">글자 기질 + 수리 숫자 → 선천괘에 미친 영향</p>
       ${(()=>{
         const CHAR_MEANING = {
-          甲:'8 · 강한 추진력과 독립심. 새로운 시작을 주도하는 기질.',
-          乙:'4 · 유연한 적응력. 관계 속에서 실리를 챙기는 능력.',
-          丙:'9 · 밝고 화려한 표현력. 주목받고 드러나는 에너지.',
-          丁:'3 · 섬세한 내면과 직관. 깊이 파고드는 집중력.',
-          戊:'2 · 안정과 포용. 중심을 잡고 주변을 품는 기질.',
-          己:'1 · 자기 원칙과 신중함. 내실을 다지는 힘.',
-          庚:'7 · 결단력과 의지. 강하게 밀어붙이는 추진 에너지.',
-          辛:'6 · 정밀함과 완벽주의. 섬세하게 다듬는 기질.',
-          壬:'5 · 유동적이고 지혜로운 통찰. 흐름을 읽는 능력.',
-          癸:'10 · 완성과 마무리. 깊은 사유와 영적 감수성.',
-          子:'9 · 기운이 응축된 시작. 잠재력이 폭발하기 직전.',
-          丑:'8 · 묵묵히 쌓아가는 인내. 느리지만 단단한 성장.',
-          寅:'7 · 용맹한 도전과 활동성. 움직이고 개척하는 힘.',
-          卯:'6 · 부드럽고 빠른 성장. 인간관계와 소통의 재능.',
-          辰:'5 · 변화를 품는 포용력. 전환점에서 방향을 잡는 능력.',
-          巳:'4 · 통찰과 지혜. 깊이 생각하고 전략적으로 움직임.',
-          午:'9 · 최고조의 에너지. 화려하게 빛나고 드러나는 시기.',
-          未:'8 · 성숙과 결실. 내면의 깊이가 삶에 배어나오는 기질.',
-          申:'7 · 날카로운 판단력. 빠르게 결정하고 실행하는 능력.',
-          酉:'6 · 정제된 아름다움과 완성도. 마무리를 잘하는 힘.',
-          戌:'5 · 변화와 전환을 수용. 삶의 고비마다 재정비하는 능력.',
-          亥:'4 · 깊은 내면의 힘. 조용히 에너지를 모으는 준비의 기질.',
+          甲:{keyword:'강한 추진력·독립심', desc:'새로운 시작을 주도하는 기질'},
+          乙:{keyword:'유연한 적응력·실리', desc:'관계 속에서 실리를 챙기는 능력'},
+          丙:{keyword:'밝은 표현력·화려함', desc:'주목받고 드러나는 에너지'},
+          丁:{keyword:'섬세한 직관·집중력', desc:'깊이 파고드는 내면의 힘'},
+          戊:{keyword:'안정·포용력', desc:'중심을 잡고 주변을 품는 기질'},
+          己:{keyword:'자기 원칙·신중함', desc:'내실을 다지는 힘'},
+          庚:{keyword:'결단력·강한 의지', desc:'강하게 밀어붙이는 추진 에너지'},
+          辛:{keyword:'정밀함·완벽주의', desc:'섬세하게 다듬는 기질'},
+          壬:{keyword:'유동적 통찰·지혜', desc:'흐름을 읽고 유연하게 대응'},
+          癸:{keyword:'완성·깊은 감수성', desc:'마무리와 영적 사유의 힘'},
+          子:{keyword:'응축된 시작·잠재력', desc:'폭발 직전의 응축된 에너지'},
+          丑:{keyword:'인내·단단한 성장', desc:'느리지만 묵묵히 쌓아가는 힘'},
+          寅:{keyword:'용맹한 도전·활동성', desc:'움직이고 개척하는 힘'},
+          卯:{keyword:'빠른 성장·소통', desc:'인간관계와 소통의 재능'},
+          辰:{keyword:'포용력·전환점', desc:'변화를 수용하고 방향을 잡는 능력'},
+          巳:{keyword:'통찰·전략적 사고', desc:'깊이 생각하고 전략적으로 움직임'},
+          午:{keyword:'최고조 에너지·표출', desc:'화려하게 빛나고 드러나는 기질'},
+          未:{keyword:'성숙·내면의 깊이', desc:'삶에 배어나오는 내면의 결실'},
+          申:{keyword:'날카로운 판단력', desc:'빠르게 결정하고 실행하는 능력'},
+          酉:{keyword:'완성도·정제된 미', desc:'마무리를 잘하는 섬세한 힘'},
+          戌:{keyword:'전환 수용·재정비', desc:'삶의 고비마다 새롭게 정비'},
+          亥:{keyword:'내면의 힘·준비', desc:'조용히 에너지를 모으는 기질'},
         };
+        // 8개 소성괘 이름
+        const PALGU = ['건(乾)','태(兌)','이(離)','진(震)','손(巽)','감(坎)','간(艮)','곤(坤)'];
+        const csF = suri.csF, jsF = suri.jsF;
+        const sangGua = PALGU[(csF % 8 || 8) - 1];
+        const haGua   = PALGU[(jsF % 8 || 8) - 1];
+
         const allChars = [
-          ...suri.chunganList.map((s,i)=>({char:s.char, su:s.su, label:`${['연','월','일','시'][i]}간`, color:'var(--accent-light)'})),
-          ...suri.jijiList.map((s,i)=>({char:s.char, su:s.su, label:`${['연','월','일','시'][i]}지`, color:'#f472b6'})),
+          ...suri.chunganList.map((s,i)=>({char:s.char, su:s.su, label:`${['연','월','일','시'][i]}간`, isGan:true})),
+          ...suri.jijiList.map((s,i)=>({char:s.char, su:s.su, label:`${['연','월','일','시'][i]}지`, isGan:false})),
         ];
-        return allChars.map(c=>`
-          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
-              <span style="font-size:1.1rem;font-weight:800;color:${c.color};">${c.char}</span>
-              <span style="font-size:.72rem;color:var(--text-muted);">${c.label} · 수리 ${c.su}</span>
+
+        return allChars.map(c=>{
+          const m = CHAR_MEANING[c.char] || {keyword:'—', desc:'—'};
+          const isOdd = c.su % 2 !== 0;
+          const suType = isOdd ? '홀수→천수' : '짝수→지수';
+          const suColor = isOdd ? 'var(--accent-light)' : '#f472b6';
+
+          // 이 글자가 상괘/하괘 중 어디에 기여했는지
+          let roleText = '';
+          if (isOdd) {
+            // 천수에 포함
+            const role = gender==='male' ? `상괘 ${sangGua} 형성에 기여` : `하괘 ${haGua} 형성에 기여`;
+            roleText = role;
+          } else {
+            const role = gender==='male' ? `하괘 ${haGua} 형성에 기여` : `상괘 ${sangGua} 형성에 기여`;
+            roleText = role;
+          }
+
+          return `
+          <div style="padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span style="font-size:1.3rem;font-weight:800;color:${c.isGan?'var(--accent-light)':'#f472b6'};">${c.char}</span>
+              <div>
+                <span style="font-size:.72rem;color:var(--text-muted);">${c.label}</span>
+                <span style="font-size:.72rem;margin-left:8px;padding:1px 7px;border-radius:20px;background:rgba(124,58,237,.12);color:${suColor};">${suType} · ${c.su}</span>
+              </div>
             </div>
-            <p style="font-size:.83rem;color:var(--text-muted);line-height:1.7;">${CHAR_MEANING[c.char]||'—'}</p>
-          </div>`).join('');
+            <div style="display:flex;gap:6px;align-items:center;font-size:.82rem;flex-wrap:wrap;">
+              <span style="color:var(--text);">${m.keyword}</span>
+              <span style="color:var(--text-muted);">→</span>
+              <span style="color:var(--text-muted);">${m.desc}</span>
+              <span style="color:var(--border);">|</span>
+              <span style="color:var(--gold);font-size:.78rem;">⟹ ${roleText}</span>
+            </div>
+          </div>`;
+        }).join('');
       })()}
     </div>
 
