@@ -307,8 +307,11 @@ async function calcHarakisu({ year, month, day, hour = 12, gender = 'male' }) {
 
 // ── 효 시각화 HTML 생성 ───────────────────────────────────────
 function renderYao(lines = [], highlightPos = null, size = 'sm') {
-  const lg = size === 'lg';
-  const w1 = lg ? 52 : 36, w2 = lg ? 22 : 15, gap = lg ? 8 : 5, h = lg ? 18 : 12;
+  const lg  = size === 'lg';
+  const w1  = lg ? 52 : 36;        // 양효 전체 폭 = 음효 전체 폭
+  const w2  = lg ? 22 : 15;        // 음효 각 막대 폭
+  const gap = w1 - w2 * 2;         // 음효 가운데 간격 (sm:6px / lg:8px)
+  const h   = lg ? 18 : 12;
   let html = '<div class="yao-wrap">';
   for (let i = 0; i < lines.length; i++) {
     const pos = i + 1;
@@ -316,12 +319,14 @@ function renderYao(lines = [], highlightPos = null, size = 'sm') {
     const cls = hl ? 'yao-gold' : '';
     const hpx = h + 'px';
     if (lines[i] === 1) {
-      html += `<div class="yao-line"><div class="yao-yang ${cls}" style="width:${w1}px;height:${hpx}"></div></div>`;
+      html += `<div class="yao-line" style="width:${w1}px;display:flex;">
+        <div class="yao-yang ${cls}" style="width:${w1}px;height:${hpx};"></div>
+      </div>`;
     } else {
-      html += `<div class="yao-line">
-        <div class="yao-yin ${cls}" style="width:${w2}px;height:${hpx}"></div>
-        <div style="width:${gap}px"></div>
-        <div class="yao-yin ${cls}" style="width:${w2}px;height:${hpx}"></div>
+      html += `<div class="yao-line" style="width:${w1}px;display:flex;align-items:center;">
+        <div class="yao-yin ${cls}" style="width:${w2}px;height:${hpx};flex-shrink:0;"></div>
+        <div style="width:${gap}px;flex-shrink:0;"></div>
+        <div class="yao-yin ${cls}" style="width:${w2}px;height:${hpx};flex-shrink:0;"></div>
       </div>`;
     }
   }
