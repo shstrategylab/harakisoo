@@ -6,6 +6,7 @@
   <title>풀이 결과 — 하락이수</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="css/style.css">
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 </head>
 <body>
 
@@ -52,7 +53,7 @@ const TABS = [
   { id:'hucheon',   label:'후천괘' },
   { id:'yunnyeon',  label:'올해 운' },
   { id:'timeline',  label:'대운 흐름' },
-  { id:'events',    label:'인생 사건' },
+  { id:'events',    label:'선후천 분석' },
   { id:'suri',      label:'수리 계산' },
 ];
 
@@ -354,12 +355,87 @@ async function main() {
     ${promptBox(RESULT)}`;
 
   // ── 선천괘 탭
-  document.getElementById('tab-seoncheon').innerHTML =
+  const scBaseHtml =
     infoBox(`<strong style="color:var(--text);">선천괘(先天卦)란?</strong><br>
 태어날 때부터 타고난 기질·재능·인생 전반(약 40세 이전)의 큰 흐름을 나타냅니다. 바꿀 수 없는 본래의 성품과 이 생에서 주어진 과제가 담겨 있습니다.<br><br>
 <strong style="color:var(--text);">원당효(元堂爻)란?</strong><br>
 선천괘의 6개 효(爻) 중 나의 핵심 에너지가 집중된 자리입니다. 가장 중요한 효로, 인생의 주된 기질과 강점을 읽는 핵심 지점입니다.`) +
     detailCard(sc, sc.lines, wondang, wondangYao, `원당효(元堂爻) · ${wondang}효`);
+
+  const scLoadingCard = `<div class="card" id="sc-temperament-card" style="margin-top:14px;">
+    <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:12px;">🔍 기질·에너지 분석</p>
+    <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:.85rem;">
+      <div style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+      AI가 이 괘의 기질과 에너지 구조를 분석하고 있습니다...
+    </div>
+  </div>`;
+
+  document.getElementById('tab-seoncheon').innerHTML = scBaseHtml + scLoadingCard;
+
+  (async () => {
+    const wYaoText = wondangYao?.text_ko || '';
+    const wYayCom  = wondangYao?.comment_ko || '';
+    const prompt = `다음은 하락이수에서 도출된 선천괘(타고난 기질·인생 전반)와 원당효(핵심 에너지 자리)입니다.
+
+선천괘: ${sc.name}(${sc.guaNo}번괘)
+괘사: ${sc.dansa || ''}
+실용 해석: ${sc.practical || ''}
+원당효: ${wondang}효
+원당효 효사: ${wYaoText}
+원당효 해설: ${wYayCom}
+성별: ${gender === 'male' ? '남성' : '여성'} / 출생연도: ${birthYear}년
+
+위 정보를 바탕으로 이 사람의 에너지 구조를 아래 형식의 JSON으로만 출력하세요. 다른 텍스트 없이 JSON만 출력합니다:
+{
+  "core": "핵심 기질 한 줄 (20자 내외)",
+  "strengths": ["강점1", "강점2", "강점3"],
+  "weaknesses": ["주의할 점1", "주의할 점2"],
+  "lifetheme": "이 사람의 인생 과제 또는 방향성 (2~3문장)",
+  "energy": "원당효가 보여주는 핵심 에너지 (2~3문장)",
+  "advice": "이 에너지를 잘 쓰기 위한 조언 (1~2문장)"
+}`;
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }] }),
+      });
+      const data = await resp.json();
+      const raw  = data.content?.map(c => c.text || '').join('').trim();
+      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      const card = document.getElementById('sc-temperament-card');
+      if (!card) return;
+      card.innerHTML = `
+        <p style="font-size:.72rem;color:var(--accent-light);margin-bottom:16px;letter-spacing:.05em;">✦ 기질·에너지 분석</p>
+        <p style="font-size:1.15rem;font-weight:800;margin-bottom:20px;line-height:1.4;">"${parsed.core}"</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+          <div style="padding:12px;background:var(--surface2);border-radius:8px;">
+            <p style="font-size:.68rem;color:var(--accent-light);margin-bottom:8px;">강점</p>
+            ${parsed.strengths.map(s => `<p style="font-size:.85rem;margin-bottom:4px;">· ${s}</p>`).join('')}
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:8px;">
+            <p style="font-size:.68rem;color:#f472b6;margin-bottom:8px;">주의할 점</p>
+            ${parsed.weaknesses.map(w => `<p style="font-size:.85rem;margin-bottom:4px;">· ${w}</p>`).join('')}
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px;">
+          <p style="font-size:.68rem;color:var(--text-muted);margin-bottom:6px;">인생 과제 · 방향성</p>
+          <p style="line-height:1.85;font-size:.9rem;">${parsed.lifetheme}</p>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px;">
+          <p style="font-size:.68rem;color:var(--gold);margin-bottom:6px;">원당효 핵심 에너지</p>
+          <p style="line-height:1.85;font-size:.9rem;">${parsed.energy}</p>
+        </div>
+        <div style="padding:12px 14px;background:rgba(124,58,237,.08);border-radius:8px;border-left:3px solid var(--accent);">
+          <p style="font-size:.68rem;color:var(--accent-light);margin-bottom:4px;">이 에너지를 잘 쓰려면</p>
+          <p style="font-size:.88rem;line-height:1.7;">${parsed.advice}</p>
+        </div>`;
+    } catch(e) {
+      const card = document.getElementById('sc-temperament-card');
+      if (card) card.style.display = 'none';
+    }
+  })();
 
   // ── 후천괘 탭
   document.getElementById('tab-hucheon').innerHTML =
@@ -577,22 +653,170 @@ async function main() {
     }).join('');
   }
 
-  // ── 인생 사건 탭 렌더
-  const transitionEvents = findTransitionEvents(timeline);
-  const guaEvents        = findGuaEvents(timeline);
-  const yaoEvents        = findYaoEvents(timeline);
-  const allEvents        = transitionEvents.concat(guaEvents).concat(yaoEvents);
+  // ── 선후천 관계 분석 탭
+  const isSameGua = sc.guaNo === hc.guaNo;
+  const scYang = sc.lines ? sc.lines.filter(v => v===1).length : 0;
+  const hcYang = hc.lines ? hc.lines.filter(v => v===1).length : 0;
+  const yangDiff = hcYang - scYang;
+
+  // 선후천 관계 유형 판정
+  let relationLabel, relationDesc, relationColor;
+  if (isSameGua) {
+    relationLabel = '일관형 — 전후반이 같은 괘';
+    relationColor = 'var(--accent-light)';
+    relationDesc  = '선천괘와 후천괘가 동일합니다. 타고난 기질 그대로 인생 후반도 이어집니다. 중심이 흔들리지 않고 일관된 방향으로 나아가는 삶입니다. 자신의 본성을 깊이 파고들수록 후반이 풍요로워집니다.';
+  } else if (yangDiff > 1) {
+    relationLabel = '상승 전환형 — 후반이 더 양(陽)적';
+    relationColor = '#818cf8';
+    relationDesc  = '후천괘가 선천괘보다 양(陽)의 기운이 강합니다. 전반부는 다소 조용하거나 내면을 다지는 시기이지만, 40대 이후 에너지가 크게 발산되며 외향적·적극적으로 변화합니다. 늦게 피는 꽃의 유형입니다.';
+  } else if (yangDiff < -1) {
+    relationLabel = '수렴 전환형 — 후반이 더 음(陰)적';
+    relationColor = '#f472b6';
+    relationDesc  = '후천괘가 선천괘보다 음(陰)의 기운이 강합니다. 전반부는 활발하게 외부로 에너지를 쏟지만, 40대 이후 내면으로 깊어지고 관조적·수용적으로 변화합니다. 후반의 지혜와 깊이가 강점이 됩니다.';
+  } else {
+    relationLabel = '전환형 — 방향이 바뀌는 인생';
+    relationColor = 'var(--gold)';
+    relationDesc  = '선천괘와 후천괘가 다릅니다. 인생 전반과 후반에 뚜렷한 전환점이 찾아옵니다. 40대를 전후해 삶의 방향·가치관·환경 중 하나 이상이 크게 바뀌는 경험을 하게 됩니다. 이 전환을 받아들이는 태도가 후반 삶의 질을 결정합니다.';
+  }
+
+  // 선후천 교차 에너지 분석 로딩
+  const evLoadingHtml = `
+    <div class="card" id="sc-hc-ai-card" style="margin-top:14px;">
+      <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:12px;">🔍 선후천 교차 에너지 분석</p>
+      <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:.85rem;">
+        <div style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+        AI가 선천·후천 교차 에너지 구조를 분석하고 있습니다...
+      </div>
+    </div>`;
 
   document.getElementById('tab-events').innerHTML =
-    infoBox(`<strong style="color:var(--text);">인생 사건 탐지란?</strong><br>
-하락이수에서 특정 사건을 읽어내는 세 가지 근거:<br>
-① <strong style="color:#818cf8;">음양 전환점</strong> — 양효(9년)↔음효(6년)가 바뀌는 경계 나이는 에너지 방향이 급전환되어 사건이 집중됩니다.<br>
-② <strong style="color:var(--gold);">괘 상징</strong> — 결혼·이혼·창업·사망 등을 직접 상징하는 괘가 대운 구간에 오면 그 사건 유형이 나타나기 쉽습니다.<br>
-③ <strong style="color:var(--accent-light);">효사 직접 근거</strong> — 실제 효사 원문에 결혼·임신·소송·이동·질병 등의 표현이 직접 포함된 효의 대운 구간입니다.<br><br>
-<span style="color:#f87171;">※ 근거가 있을 때만 표시합니다. 억지 해석 없이, 사건은 가능성이지 확정이 아닙니다.</span>`) +
-    `<div style="display:flex;flex-direction:column;">${eventsTabHtml(allEvents, korAge, birthYear)}</div>`;
+    infoBox(`<strong style="color:var(--text);">선후천 관계 분석이란?</strong><br>
+선천괘(타고난 씨앗)와 후천괘(맺은 열매)의 관계를 읽으면 이 사람의 <strong>인생 에너지가 어떻게 흘러가는지</strong>가 보입니다.<br><br>
+두 괘가 <strong style="color:var(--accent-light);">같으면</strong> 일관된 삶, <strong style="color:#818cf8);">후천이 더 양(陽)이면</strong> 후반이 피어나는 삶, <strong style="color:#f472b6;">후천이 더 음(陰)이면</strong> 후반에 깊어지는 삶, <strong style="color:var(--gold);">괘가 다르면</strong> 전환점이 찾아오는 삶입니다.`) +
 
+    // 관계 유형 카드
+    `<div class="card" style="border-color:${relationColor};margin-bottom:14px;">
+      <p style="font-size:.68rem;color:${relationColor};margin-bottom:10px;letter-spacing:.05em;">인생 에너지 유형</p>
+      <p style="font-size:1.1rem;font-weight:800;margin-bottom:14px;">${relationLabel}</p>
+      <p style="line-height:1.85;font-size:.9rem;">${relationDesc}</p>
+    </div>` +
 
+    // 선천 vs 후천 나란히
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div class="card">
+        <p style="font-size:.65rem;color:var(--text-muted);margin-bottom:8px;">선천괘 · 인생 전반</p>
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">
+          ${Harakisu.renderYao(sc.lines, wondang, 'sm')}
+          <div>
+            <p style="font-weight:800;font-size:1rem;">${sc.name}</p>
+            <p style="font-size:.72rem;color:var(--text-muted);">${sc.guaNo}번괘 · 원당 ${wondang}효</p>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--text-muted);line-height:1.7;">${sc.practical || sc.dansa || ''}</p>
+      </div>
+      <div class="card">
+        <p style="font-size:.65rem;color:var(--text-muted);margin-bottom:8px;">후천괘 · 인생 후반</p>
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">
+          ${Harakisu.renderYao(hc.lines, null, 'sm')}
+          <div>
+            <p style="font-weight:800;font-size:1rem;">${hc.name}</p>
+            <p style="font-size:.72rem;color:var(--text-muted);">${hc.guaNo}번괘</p>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--text-muted);line-height:1.7;">${hc.practical || hc.dansa || ''}</p>
+      </div>
+    </div>` +
+
+    // 양효 구성 비교 바
+    `<div class="card" style="margin-bottom:14px;">
+      <p style="font-size:.68rem;color:var(--text-muted);margin-bottom:12px;">양(陽)·음(陰) 구성 비교</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;">
+            <span>선천괘 양효</span><span style="color:var(--accent-light);">${scYang}/6</span>
+          </div>
+          <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${(scYang/6*100).toFixed(0)}%;background:var(--accent);border-radius:4px;transition:width .6s;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px;">
+            <span>후천괘 양효</span><span style="color:#818cf8;">${hcYang}/6</span>
+          </div>
+          <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${(hcYang/6*100).toFixed(0)}%;background:#818cf8;border-radius:4px;transition:width .6s;"></div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-top:12px;">
+        ${yangDiff > 0 ? `후반부로 갈수록 양(陽) 에너지가 +${yangDiff}효 증가 — 적극성·외향성이 강해집니다.`
+          : yangDiff < 0 ? `후반부로 갈수록 음(陰) 에너지가 ${Math.abs(yangDiff)}효 증가 — 깊이·수용성이 강해집니다.`
+          : '전후반 양음 구성이 동일합니다 — 에너지 방향이 일관됩니다.'}
+      </p>
+    </div>` +
+    evLoadingHtml;
+
+  // Claude API — 선후천 교차 에너지 심층 분석
+  (async () => {
+    const prompt = `하락이수 선후천 분석입니다.
+
+선천괘(타고난 기질): ${sc.name}(${sc.guaNo}번) / 괘사: ${sc.dansa || ''} / 실용해석: ${sc.practical || ''}
+원당효(핵심에너지): ${wondang}효 / 효사: ${wondangYao?.text_ko || ''} / 해설: ${wondangYao?.comment_ko || ''}
+후천괘(인생후반): ${hc.name}(${hc.guaNo}번) / 괘사: ${hc.dansa || ''} / 실용해석: ${hc.practical || ''}
+관계유형: ${relationLabel}
+성별: ${gender === 'male' ? '남성' : '여성'} / 출생: ${birthYear}년
+
+두 괘의 에너지 흐름을 교차 분석해서 아래 JSON 형식으로만 출력하세요:
+{
+  "transition": "전반→후반 전환의 핵심 메시지 (2~3문장)",
+  "synergy": "선천과 후천의 에너지가 만나 만들어내는 시너지 또는 긴장 (2문장)",
+  "fortyplus": "40대 이후 이 사람에게 찾아올 변화와 기회 (2~3문장)",
+  "warning": "이 에너지 구조에서 주의해야 할 함정 (1~2문장)",
+  "keyword": ["선후천을 관통하는 핵심 키워드 3개"]
+}`;
+
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const data = await resp.json();
+      const raw  = data.content?.map(c => c.text || '').join('').trim();
+      const p    = JSON.parse(raw.replace(/```json|```/g, '').trim());
+
+      const card = document.getElementById('sc-hc-ai-card');
+      if (!card) return;
+      card.innerHTML = `
+        <p style="font-size:.68rem;color:var(--accent-light);margin-bottom:16px;letter-spacing:.05em;">✦ 선후천 교차 에너지 분석</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+          ${p.keyword.map(k => `<span style="padding:4px 12px;border-radius:20px;background:rgba(124,58,237,.12);color:var(--accent-light);font-size:.78rem;">${k}</span>`).join('')}
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px;">
+          <p style="font-size:.68rem;color:var(--text-muted);margin-bottom:6px;">전반 → 후반 전환의 핵심</p>
+          <p style="line-height:1.85;font-size:.9rem;">${p.transition}</p>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px;">
+          <p style="font-size:.68rem;color:var(--text-muted);margin-bottom:6px;">두 에너지의 시너지·긴장</p>
+          <p style="line-height:1.85;font-size:.9rem;">${p.synergy}</p>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px;">
+          <p style="font-size:.68rem;color:#818cf8;margin-bottom:6px;">40대 이후 찾아올 변화</p>
+          <p style="line-height:1.85;font-size:.9rem;">${p.fortyplus}</p>
+        </div>
+        <div style="padding:12px 14px;background:rgba(248,113,113,.06);border-radius:8px;border-left:3px solid #f87171;">
+          <p style="font-size:.68rem;color:#f87171;margin-bottom:4px;">주의할 함정</p>
+          <p style="font-size:.88rem;line-height:1.7;">${p.warning}</p>
+        </div>`;
+    } catch(e) {
+      const card = document.getElementById('sc-hc-ai-card');
+      if (card) card.style.display = 'none';
+    }
+  })();
   // ── 수리 탭
   const suriRows = [...suri.chunganList.map((s,i)=>({label:`${['연','월','일','시'][i]}간 ${s.char}`, su:s.su, color:'var(--accent-light)'})),
                     ...suri.jijiList.map((s,i)=>({label:`${['연','월','일','시'][i]}지 ${s.char}`, su:s.su, color:'#f472b6'}))];
