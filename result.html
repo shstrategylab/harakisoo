@@ -548,8 +548,8 @@ async function main() {
           basis:'풍뢰익(風雷益) — 재물과 이익이 늘어나는 괘.' },
     41: { events:['손재수·지출 증가'], icon:'📉',
           basis:'산택손(山澤損) — 재물이 빠져나가는 상.' },
-    24: { events:['새 시작·부활'], icon:'👶',
-          basis:'지뢰복(地雷復) — 양기가 새로 싹트는 상. 새 생명·임신의 기운.' },
+    24: { events:['새 시작·부활','재회·복귀'], icon:'🔄',
+          basis:'지뢰복(地雷復) — 복(復)은 "돌아옴". 양기가 새로 싹트는 상으로 새 생명·관계 회복·복귀의 기운을 상징.' },
   };
 
   const YAO_EVENT_DB = {
@@ -580,6 +580,17 @@ async function main() {
     "16_5": { event:"건강·질병", icon:"🏥", basis:"효사: '바름을 지키면 병이 있어도 죽지 않는다'" },
     "33_3": { event:"건강·질병", icon:"🏥", basis:"효사: '위태롭고 질병이 있다. 신하와 첩을 기르면 길하다'" },
     "17_1": { event:"취직·임명", icon:"💼", basis:"효사: '벼슬이 바뀌었으니 바름을 지키면 길하다'" },
+    // 재회·복귀·관계 회복 (괘24 복(復) — 이름 자체가 '돌아옴')
+    "24_1": { event:"재회·복귀", icon:"🔄", basis:"효사: '멀지 않아 돌아오니 뉘우침이 없이 크게 길하다'" },
+    "24_2": { event:"재회·복귀", icon:"🔄", basis:"효사: '좋게 돌아오니 길하다'" },
+    "24_5": { event:"재회·복귀", icon:"🔄", basis:"효사: '돈독하게 돌아오니 후회가 없다'" },
+    "9_2":  { event:"재회·복귀", icon:"🔄", basis:"효사: '이끌려 돌아오니 길하다'" },
+    // 이별 후 새 인연·화해 (괘38 규(睽) — 어긋남에서 만남으로 전환)
+    "38_4": { event:"이별 후 새 인연", icon:"💞", basis:"효사: '어긋나 홀로 있다가 훌륭한 지아비를 만나니 진실하면 위태로워도 허물이 없다'" },
+    "38_6": { event:"갈등 해소·화해", icon:"🤝", basis:"효사: '의심을 내려놓으면 도적이 아니라 혼인을 청하는 것임을 알게 되어 길하다'" },
+    // 손재·재물 분실
+    "51_2": { event:"손재수", icon:"📉", basis:"효사: '재물을 잃어도 쫓지 말라. 7일이면 다시 얻는다'" },
+    "9_5":  { event:"재물 증가", icon:"💰", basis:"효사: '진실이 있어 서로 이어지니 부유해지면 이웃과 함께하라'" },
   };
 
   function findYaoEvents(tl) {
@@ -599,6 +610,7 @@ async function main() {
         desc: hit.basis,
         basis: '실제 효사(text_ko)에 해당 사건 표현이 직접 포함됨',
         tags: [hit.event], color: 'var(--accent-light)',
+        confidence: 'high',
       });
     });
     return events;
@@ -619,6 +631,7 @@ async function main() {
           tags: cur.yang ? ['변화','시작'] : ['마무리','전환'],
           icon: cur.yang ? '🔄' : '🔄',
           color: cur.yang ? '#818cf8' : '#f472b6',
+          confidence: 'low',
         });
       }
     }
@@ -640,6 +653,7 @@ async function main() {
         desc: map.basis,
         basis: '괘의 핵심 상징에 해당 사건 유형이 포함됨',
         tags: map.events, color: 'var(--gold)',
+        confidence: 'mid',
       });
     });
     return events;
@@ -654,9 +668,12 @@ async function main() {
       </div>`;
     }
     allEvents.sort(function(a, b) { return a.age - b.age; });
+    const CONF_LABEL = { high: '근거 강함', mid: '근거 중간', low: '참고용' };
+    const CONF_COLOR = { high: '#4ade80', mid: 'var(--gold)', low: 'var(--text-muted)' };
     return allEvents.map(function(ev) {
       var isCur = korAge >= ev.age && korAge <= (ev.ageEnd || ev.age + 15);
       var guaInfo = ev.gua ? (Harakisu.DB.dansa?.[ev.gua] || Harakisu.DB.dansa?.[String(ev.gua)] || {}) : {};
+      var conf = ev.confidence || 'mid';
       return `<div class="card" style="border-color:${isCur ? 'var(--accent)' : 'var(--border)'};${isCur ? 'background:rgba(124,58,237,.06);' : ''}margin-bottom:12px;">
         <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;">
           <div style="flex-shrink:0;min-width:72px;text-align:center;padding:8px 10px;background:var(--surface2);border-radius:8px;">
@@ -666,6 +683,7 @@ async function main() {
           </div>
           <div style="flex:1;">
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+              <span style="font-size:.68rem;padding:2px 8px;border-radius:20px;border:1px solid ${CONF_COLOR[conf]};color:${CONF_COLOR[conf]};">● ${CONF_LABEL[conf]}</span>
               ${ev.tags.map(function(t){return `<span style="font-size:.72rem;padding:2px 8px;border-radius:20px;background:rgba(124,58,237,.12);color:var(--accent-light);">${t}</span>`;}).join('')}
               ${isCur ? '<span style="font-size:.7rem;background:var(--accent);color:#fff;padding:2px 8px;border-radius:20px;">▶ 현재 구간</span>' : ''}
             </div>
@@ -688,10 +706,10 @@ async function main() {
 
   document.getElementById('tab-events').innerHTML =
     infoBox(`<strong style="color:var(--text);">인생 사건 탐지란?</strong><br>
-하락이수에서 특정 사건을 읽어내는 세 가지 근거:<br>
-① <strong style="color:#818cf8;">음양 전환점</strong> — 양효(9년)↔음효(6년)가 바뀌는 경계 나이는 에너지 방향이 급전환되어 사건이 집중됩니다.<br>
-② <strong style="color:var(--gold);">괘 상징</strong> — 결혼·이혼·창업·사망 등을 직접 상징하는 괘가 대운 구간에 오면 그 사건 유형이 나타나기 쉽습니다.<br>
-③ <strong style="color:var(--accent-light);">효사 직접 근거</strong> — 실제 효사 원문에 결혼·임신·소송·이동·질병 등의 표현이 직접 포함된 효의 대운 구간입니다.<br><br>
+하락이수에서 특정 사건을 읽어내는 세 가지 근거이며, 각각 신뢰도가 다릅니다:<br>
+① <strong style="color:#818cf8;">음양 전환점</strong> <span style="color:var(--text-muted);">(참고용)</span> — 양효(9년)↔음효(6년)가 바뀌는 경계 나이는 에너지 방향이 급전환되어 사건이 집중되는 시기입니다. 어떤 사건인지는 특정하지 않습니다.<br>
+② <strong style="color:var(--gold);">괘 상징</strong> <span style="color:var(--text-muted);">(근거 중간)</span> — 결혼·이혼·창업·사망 등을 직접 상징하는 괘가 대운 구간에 오면 그 사건 유형이 나타나기 쉽습니다.<br>
+③ <strong style="color:var(--accent-light);">효사 직접 근거</strong> <span style="color:#4ade80;">(근거 강함)</span> — 실제 효사 원문에 결혼·임신·소송·이동·질병 등의 표현이 직접 포함된 효의 대운 구간입니다. 가장 신뢰도가 높습니다.<br><br>
 <span style="color:#f87171;">※ 근거가 있을 때만 표시합니다. 억지 해석 없이, 사건은 가능성이지 확정이 아닙니다.</span>`) +
     `<div style="display:flex;flex-direction:column;">${eventsTabHtml(allEvents, korAge, birthYear)}</div>`;
 
