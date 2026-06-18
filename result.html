@@ -82,6 +82,15 @@ function switchTab(id) {
   document.getElementById(`tab-${id}`).style.display = 'block';
   document.querySelector(`button[onclick="switchTab('${id}')"]`)?.classList.add('active');
 }
+
+function goToOverviewPrompt() {
+  switchTab('overview');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => {
+    document.getElementById('prompt-question')?.focus();
+  }, 300);
+}
+
 // tabBar 버튼에 onclick 연결
 tabBar.querySelectorAll('.tab-btn').forEach((btn,i) => {
   btn.setAttribute('onclick', `switchTab('${TABS[i].id}')`);
@@ -251,6 +260,18 @@ function timelineListHtml(tl, birthYear) {
   }).join('');
 }
 
+function miniPromptCard(label, hint) {
+  return `
+  <div class="card" style="margin-top:14px;border-style:dashed;">
+    <p style="font-size:.85rem;font-weight:600;margin-bottom:6px;">🤖 ${label}</p>
+    <p style="color:var(--text-muted);font-size:.82rem;line-height:1.7;margin-bottom:12px;">${hint}</p>
+    <button onclick="goToOverviewPrompt()"
+      style="padding:10px 18px;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:.85rem;font-family:inherit;">
+      개요 탭에서 Claude 프롬프트 복사하기 →
+    </button>
+  </div>`;
+}
+
 function promptBox(result) {
   return `
   <div class="card" style="margin-top:24px;">
@@ -336,7 +357,7 @@ async function main() {
   document.getElementById('tab-overview').innerHTML =
     infoBox(`하락이수(河洛理數)는 사주의 천간·지지를 숫자로 변환해 주역 64괘로 인생을 읽는 운명학입니다.<br>
 <strong style="color:var(--text);">선천괘</strong>는 타고난 기질과 인생 전반, <strong style="color:var(--text);">후천괘</strong>는 경험으로 만들어지는 인생 후반을 나타냅니다.
-각 탭에서 더 자세한 설명과 해석을 확인하세요. 심층 풀이가 필요하면 아래 <strong style="color:var(--text);">Claude 프롬프트</strong>를 복사해 claude.ai에 붙여넣으세요.`) +
+각 탭에서 더 자세한 설명을 확인하세요. <strong style="color:var(--text);">더 깊은 해석이 필요하면</strong> 이 페이지 아래 <strong style="color:var(--gold);">Claude 프롬프트</strong>를 복사해 claude.ai에 붙여넣으세요 — 선천괘·후천괘·올해 운 정보가 모두 포함된 통합 프롬프트입니다.`) +
     `<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
       ${guaCard(sc, sc.lines, wondang, `원당효 ${wondang}효`)}
       ${guaCard(hc, hc.lines, null, '')}
@@ -382,97 +403,59 @@ async function main() {
     ${promptBox(RESULT)}`;
 
   // ── 선천괘 탭
-  const scBaseHtml =
+  document.getElementById('tab-seoncheon').innerHTML =
     infoBox(`<strong style="color:var(--text);">선천괘(先天卦)란?</strong><br>
 태어날 때부터 타고난 기질·재능·인생 전반(약 40세 이전)의 큰 흐름을 나타냅니다. 바꿀 수 없는 본래의 성품과 이 생에서 주어진 과제가 담겨 있습니다.<br><br>
 <strong style="color:var(--text);">원당효(元堂爻)란?</strong><br>
 선천괘의 6개 효(爻) 중 나의 핵심 에너지가 집중된 자리입니다. 가장 중요한 효로, 인생의 주된 기질과 강점을 읽는 핵심 지점입니다.`) +
-    detailCard(sc, sc.lines, wondang, wondangYao, `원당효(元堂爻) · ${wondang}효`);
-
-  const scLoadingCard = `<div class="card" id="sc-temperament-card" style="margin-top:14px;">
-    <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:12px;">🔍 기질·에너지 분석</p>
-    <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:.85rem;">
-      <div style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
-      AI가 이 괘의 기질과 에너지 구조를 분석하고 있습니다...
-    </div>
-  </div>`;
-
-  document.getElementById('tab-seoncheon').innerHTML = scBaseHtml + scLoadingCard;
-
-  (async () => {
-    const wYaoText = wondangYao?.text_ko || '';
-    const wYayCom  = wondangYao?.comment_ko || '';
-    const prompt = `다음은 하락이수에서 도출된 선천괘(타고난 기질·인생 전반)와 원당효(핵심 에너지 자리)입니다.
-
-선천괘: ${sc.name}(${sc.guaNo}번괘)
-괘사: ${sc.dansa || ''}
-실용 해석: ${sc.practical || ''}
-원당효: ${wondang}효
-원당효 효사: ${wYaoText}
-원당효 해설: ${wYayCom}
-성별: ${gender === 'male' ? '남성' : '여성'} / 출생연도: ${birthYear}년
-
-위 정보를 바탕으로 이 사람의 에너지 구조를 아래 형식의 JSON으로만 출력하세요. 다른 텍스트 없이 JSON만 출력합니다:
-{
-  "core": "핵심 기질 한 줄 (20자 내외)",
-  "strengths": ["강점1", "강점2", "강점3"],
-  "weaknesses": ["주의할 점1", "주의할 점2"],
-  "lifetheme": "이 사람의 인생 과제 또는 방향성 (2~3문장)",
-  "energy": "원당효가 보여주는 핵심 에너지 (2~3문장)",
-  "advice": "이 에너지를 잘 쓰기 위한 조언 (1~2문장)"
-}`;
-    try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }] }),
-      });
-      const data = await resp.json();
-      const raw  = data.content?.map(c => c.text || '').join('').trim();
-      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
-      const card = document.getElementById('sc-temperament-card');
-      if (!card) return;
-      card.innerHTML = `
-        <p style="font-size:.72rem;color:var(--accent-light);margin-bottom:16px;letter-spacing:.05em;">✦ 기질·에너지 분석</p>
-        <p style="font-size:1.15rem;font-weight:800;margin-bottom:20px;line-height:1.4;">"${parsed.core}"</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
-          <div style="padding:12px;background:var(--surface2);border-radius:8px;">
-            <p style="font-size:.68rem;color:var(--accent-light);margin-bottom:8px;">강점</p>
-            ${parsed.strengths.map(s => `<p style="font-size:.85rem;margin-bottom:4px;">· ${s}</p>`).join('')}
-          </div>
-          <div style="padding:12px;background:var(--surface2);border-radius:8px;">
-            <p style="font-size:.68rem;color:#f472b6;margin-bottom:8px;">주의할 점</p>
-            ${parsed.weaknesses.map(w => `<p style="font-size:.85rem;margin-bottom:4px;">· ${w}</p>`).join('')}
-          </div>
-        </div>
-        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px;">
-          <p style="font-size:.68rem;color:var(--text-muted);margin-bottom:6px;">인생 과제 · 방향성</p>
-          <p style="line-height:1.85;font-size:.9rem;">${parsed.lifetheme}</p>
-        </div>
-        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px;">
-          <p style="font-size:.68rem;color:var(--gold);margin-bottom:6px;">원당효 핵심 에너지</p>
-          <p style="line-height:1.85;font-size:.9rem;">${parsed.energy}</p>
-        </div>
-        <div style="padding:12px 14px;background:rgba(124,58,237,.08);border-radius:8px;border-left:3px solid var(--accent);">
-          <p style="font-size:.68rem;color:var(--accent-light);margin-bottom:4px;">이 에너지를 잘 쓰려면</p>
-          <p style="font-size:.88rem;line-height:1.7;">${parsed.advice}</p>
-        </div>`;
-    } catch(e) {
-      const card = document.getElementById('sc-temperament-card');
-      if (card) card.style.display = 'none';
-    }
-  })();
+    detailCard(sc, sc.lines, wondang, wondangYao, `원당효(元堂爻) · ${wondang}효`) +
+    miniPromptCard(
+      '더 깊은 기질 분석이 필요하신가요?',
+      `${sc.name}(${sc.guaNo}번괘)과 원당효 ${wondang}효를 바탕으로, 이 괘를 타고난 사람의 구체적인 강점·약점·인생 과제를 Claude에게 직접 물어볼 수 있습니다.`
+    );
 
   // ── 후천괘 탭
+  const isSameGua = sc.guaNo === hc.guaNo;
+  const scYangCnt  = sc.lines ? sc.lines.filter(v=>v===1).length : 0;
+  const hcYangCnt  = hc.lines ? hc.lines.filter(v=>v===1).length : 0;
+  const yangDiffHc = hcYangCnt - scYangCnt;
+
+  let hcRelHtml;
+  if (isSameGua) {
+    hcRelHtml = `<div class="card" style="border-color:var(--accent-light);margin-top:14px;">
+      <p style="font-size:.7rem;color:var(--accent-light);margin-bottom:10px;">선천 ↔ 후천 비교</p>
+      <p style="line-height:1.85;font-size:.9rem;">선천괘와 후천괘가 <strong style="color:var(--text);">동일한 ${sc.name}</strong>입니다. 인생 전반에 형성된 기질과 방향이 후반까지 그대로 이어지는 일관된 흐름입니다. 타고난 본성을 깊이 파고들수록 후반의 삶이 안정되고 풍요로워지는 유형입니다.</p>
+    </div>`;
+  } else if (yangDiffHc > 1) {
+    hcRelHtml = `<div class="card" style="border-color:#818cf8;margin-top:14px;">
+      <p style="font-size:.7rem;color:#818cf8;margin-bottom:10px;">선천 ↔ 후천 비교</p>
+      <p style="line-height:1.85;font-size:.9rem;">선천괘(양효 ${scYangCnt}/6)보다 후천괘(양효 ${hcYangCnt}/6)의 양(陽) 기운이 강합니다. 인생 전반은 비교적 조용하거나 내면을 다지는 시기이지만, 40대 이후 에너지가 외부로 발산되며 더 적극적이고 주도적인 삶으로 전환됩니다.</p>
+    </div>`;
+  } else if (yangDiffHc < -1) {
+    hcRelHtml = `<div class="card" style="border-color:#f472b6;margin-top:14px;">
+      <p style="font-size:.7rem;color:#f472b6;margin-bottom:10px;">선천 ↔ 후천 비교</p>
+      <p style="line-height:1.85;font-size:.9rem;">선천괘(양효 ${scYangCnt}/6)보다 후천괘(양효 ${hcYangCnt}/6)의 음(陰) 기운이 강합니다. 인생 전반은 활발하게 외부로 에너지를 쏟지만, 40대 이후 내면으로 깊어지며 관조적이고 수용적인 태도로 전환됩니다.</p>
+    </div>`;
+  } else {
+    hcRelHtml = `<div class="card" style="border-color:var(--gold);margin-top:14px;">
+      <p style="font-size:.7rem;color:var(--gold);margin-bottom:10px;">선천 ↔ 후천 비교</p>
+      <p style="line-height:1.85;font-size:.9rem;">선천괘 ${sc.name}와 후천괘 ${hc.name}가 다른 괘입니다. 양음 구성(${scYangCnt}/6 → ${hcYangCnt}/6)은 비슷하지만 괘의 성격이 바뀌므로, 40대를 전후해 삶의 방향이나 환경에 뚜렷한 전환점이 찾아옵니다.</p>
+    </div>`;
+  }
+
   document.getElementById('tab-hucheon').innerHTML =
     infoBox(`<strong style="color:var(--text);">후천괘(後天卦)란?</strong><br>
 살면서 경험과 노력으로 만들어지는 인생 후반(약 40세 이후)의 흐름입니다. 선천괘가 타고난 씨앗이라면, 후천괘는 그 씨앗이 자라 맺은 열매의 모습입니다.<br><br>
 선천괘와 같은 괘가 나오면 전·후반이 일관된 인생이고, 다른 괘가 나오면 인생 후반에 새로운 전환이 찾아옴을 뜻합니다.`) +
-    detailCard(hc, hc.lines, null, null, '');
+    detailCard(hc, hc.lines, null, null, '') +
+    hcRelHtml +
+    miniPromptCard(
+      '선천 → 후천 전환의 의미를 더 깊이 알고 싶으신가요?',
+      `${sc.name}(선천)에서 ${hc.name}(후천)으로 넘어가며 무엇이 바뀌고 무엇이 유지되는지, Claude에게 직접 물어볼 수 있습니다.`
+    );
 
   // ── 유년괘 탭
-  document.getElementById('tab-yunnyeon').innerHTML =
+  const yyBaseHtml =
     infoBox(`<strong style="color:var(--text);">올해 운(流年卦)이란?</strong><br>
 선천괘의 효를 나이에 따라 한 칸씩 올라가며 읽는 방식입니다. 양효(—)는 9년, 음효(--)는 6년을 지배하며, 올해 내 나이가 속한 효가 바로 지금의 운입니다.<br><br>
 괘사는 괘 전체의 분위기를, 효사(爻辭)는 지금 이 시점 나에게 해당하는 구체적인 메시지를 담고 있습니다.`) +
@@ -489,7 +472,22 @@ async function main() {
       ${yy.yaoData?.text_ko ? `<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;"><p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px;">효사</p><p style="font-weight:600;margin-bottom:6px;">${yy.yaoData.text_ko}</p><p style="color:var(--accent-light);line-height:1.7;">${yy.yaoData.comment_ko||''}</p></div>` : ''}
       ${cur ? `<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;"><p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px;">현재 대운 구간</p><p>${cur.startAge}세~${cur.endAge}세 (${cur.yang?'양효 9년':'음효 6년'} 지배)</p></div>` : ''}
     </div>
-    ${promptBox(RESULT)}`;
+    <div class="card" style="margin-bottom:16px;">
+      <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:12px;">📐 왜 지금 ${yy.yaoPos}효인가 — 계산 근거</p>
+      <p style="font-size:.85rem;line-height:1.85;">
+        선천괘는 1효(맨 아래)부터 시작해 나이가 들수록 한 칸씩 올라갑니다.
+        양효는 9년, 음효는 6년씩 지배하므로, 현재 <strong style="color:var(--text);">${korAge}세</strong>가 누적 연수상
+        <strong style="color:var(--gold);">${sc.name} ${yy.yaoPos}효</strong> 구간에 해당합니다.
+        ${cur ? `이 구간은 <strong style="color:var(--text);">${cur.startAge}세부터 ${cur.endAge}세까지</strong> 총 ${cur.endAge-cur.startAge+1}년간 지속되며, 이후 다음 효로 넘어갑니다.` : ''}
+      </p>
+    </div>`;
+  document.getElementById('tab-yunnyeon').innerHTML =
+    yyBaseHtml +
+    miniPromptCard(
+      '올해 운을 더 자세히 알고 싶으신가요?',
+      `${yy.name} ${yy.yaoPos}효의 효사를 바탕으로, 올해 주의할 점과 살리면 좋을 기회를 Claude에게 직접 물어볼 수 있습니다.`
+    ) +
+    promptBox(RESULT);
 
   // ── 타임라인 탭
   document.getElementById('tab-timeline').innerHTML =
