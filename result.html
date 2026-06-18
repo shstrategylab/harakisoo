@@ -603,7 +603,7 @@ async function main() {
         events: [hit.event], icon: hit.icon,
         yaoText: yaoInfo?.text_ko || '',
         desc: hit.basis,
-        basis: '실제 효사(text_ko)에 해당 사건 표현이 직접 포함됨',
+        basis: '하락이수 원리: 384개 효사(爻辭) 각각은 그 시기에 일어날 일을 구체적으로 묘사한 텍스트이며, 원문에 사건을 가리키는 표현이 직접 등장하므로 가장 직접적인 증거로 본다.',
         tags: [hit.event], color: 'var(--accent-light)',
         confidence: 'high',
       });
@@ -646,7 +646,7 @@ async function main() {
         type: '괘 상징 — ' + map.events.join('·'),
         events: map.events, icon: map.icon || '',
         desc: map.basis,
-        basis: '괘의 핵심 상징에 해당 사건 유형이 포함됨',
+        basis: '하락이수 원리: 64괘는 각각 고유한 상(象)과 단사(彖辭)를 가지며, 그 상징이 가리키는 사건 유형이 해당 대운 구간 전체에 잠재적 영향을 미친다고 본다.',
         tags: map.events, color: 'var(--gold)',
         confidence: 'mid',
       });
