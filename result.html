@@ -354,10 +354,63 @@ async function main() {
   yy._label = `올해 ${currentYear}년 유년괘`;
 
   // ── 개요 탭
+  // 에너지 구조 요약 — 정적 계산으로 생성
+  const scYangN  = sc.lines ? sc.lines.filter(v=>v===1).length : 0;
+  const hcYangN  = hc.lines ? hc.lines.filter(v=>v===1).length : 0;
+  const ydN      = hcYangN - scYangN;
+  const isSameQ  = sc.guaNo === hc.guaNo;
+
+  // 선천·후천 관계 유형
+  const relType = isSameQ ? '일관형'
+    : ydN > 1  ? '후반 상승형'
+    : ydN < -1 ? '후반 수렴형'
+    : '전환형';
+  const relDesc = isSameQ
+    ? `선천·후천이 모두 <strong style="color:var(--text);">${sc.name}</strong>으로 동일합니다. 타고난 기질이 인생 전반에 걸쳐 일관되게 이어지며, 본성을 깊이 파고들수록 삶이 안정됩니다.`
+    : ydN > 1
+    ? `선천 <strong style="color:var(--text);">${sc.name}</strong>(양효 ${scYangN}/6) → 후천 <strong style="color:var(--text);">${hc.name}</strong>(양효 ${hcYangN}/6). 인생 후반으로 갈수록 적극적·외향적 에너지가 강해집니다. 40대 이후 더 크게 피어나는 구조입니다.`
+    : ydN < -1
+    ? `선천 <strong style="color:var(--text);">${sc.name}</strong>(양효 ${scYangN}/6) → 후천 <strong style="color:var(--text);">${hc.name}</strong>(양효 ${hcYangN}/6). 전반부가 활발했다면 후반부는 내면으로 깊어집니다. 관조와 지혜가 후반의 강점입니다.`
+    : `선천 <strong style="color:var(--text);">${sc.name}</strong>에서 후천 <strong style="color:var(--text);">${hc.name}</strong>으로 괘가 바뀝니다. 40대를 전후해 삶의 방향이나 환경에 뚜렷한 전환점이 찾아오는 구조입니다.`;
+
+  // 원당효 포지션 의미
+  const wondangMean = wondang <= 2 ? '1·2효는 기반을 다지는 초반부 에너지입니다. 실력을 쌓고 때를 기다리는 자세가 핵심입니다.'
+    : wondang <= 4 ? '3·4효는 사회로 나아가 활동하는 중반부 에너지입니다. 관계와 역할 속에서 자신을 드러내는 시기입니다.'
+    : '5·6효는 완성과 극점의 에너지입니다. 높은 자리에 오르거나 완성을 향해 나아가되, 지나침에 주의가 필요합니다.';
+
   document.getElementById('tab-overview').innerHTML =
-    infoBox(`하락이수(河洛理數)는 사주의 천간·지지를 숫자로 변환해 주역 64괘로 인생을 읽는 운명학입니다.<br>
-<strong style="color:var(--text);">선천괘</strong>는 타고난 기질과 인생 전반, <strong style="color:var(--text);">후천괘</strong>는 경험으로 만들어지는 인생 후반을 나타냅니다.
-각 탭에서 더 자세한 설명을 확인하세요. <strong style="color:var(--text);">더 깊은 해석이 필요하면</strong> 이 페이지 아래 <strong style="color:var(--gold);">Claude 프롬프트</strong>를 복사해 claude.ai에 붙여넣으세요 — 선천괘·후천괘·올해 운 정보가 모두 포함된 통합 프롬프트입니다.`) +
+    // ① 에너지 구조 요약 카드 (가장 먼저)
+    `<div class="card" style="margin-bottom:20px;border-color:var(--accent);">
+      <p style="font-size:.68rem;color:var(--accent-light);margin-bottom:14px;letter-spacing:.06em;">✦ 에너지 구조 요약</p>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:4px;">타고난 기질 (선천괘 · 인생 전반)</p>
+          <p style="font-size:.95rem;font-weight:700;margin-bottom:4px;">${sc.name} — ${wondang}효가 핵심 에너지 자리</p>
+          <p style="font-size:.84rem;color:var(--text-muted);line-height:1.75;">${sc.practical || sc.dansa || ''}</p>
+          <p style="font-size:.78rem;color:var(--text-muted);margin-top:6px;padding-left:10px;border-left:2px solid var(--border);">${wondangMean}</p>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;">
+          <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:4px;">맺어지는 결실 (후천괘 · 인생 후반)</p>
+          <p style="font-size:.95rem;font-weight:700;margin-bottom:4px;">${hc.name}</p>
+          <p style="font-size:.84rem;color:var(--text-muted);line-height:1.75;">${hc.practical || hc.dansa || ''}</p>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;">
+          <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:4px;">선·후천 관계 — <span style="color:var(--accent-light);">${relType}</span></p>
+          <p style="font-size:.84rem;line-height:1.8;">${relDesc}</p>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;">
+          <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:4px;">올해(${currentYear}) 유년괘</p>
+          <p style="font-size:.95rem;font-weight:700;margin-bottom:4px;">${yy.name} ${yy.yaoPos}효</p>
+          <p style="font-size:.84rem;color:var(--text-muted);line-height:1.75;">${yy.yaoData?.text_ko || ''}</p>
+          ${yy.yaoData?.comment_ko ? `<p style="font-size:.82rem;color:var(--accent-light);margin-top:6px;line-height:1.7;">💡 ${yy.yaoData.comment_ko}</p>` : ''}
+        </div>
+      </div>
+    </div>` +
+    // ② 안내문 (두 번째로)
+    infoBox(`<strong style="color:var(--text);">각 탭에서 더 자세한 내용을 확인하세요.</strong><br>
+선천괘 탭 — 원당효 상세 해설 · 후천괘 탭 — 전후반 비교 · 올해 운 탭 — 올해 운 계산 근거 · 대운 흐름 탭 — 평생 타임라인 · 인생 사건 탭 — 효사 기반 사건 탐지<br>
+<strong style="color:var(--gold);">더 깊은 해석이 필요하면</strong> 아래 Claude 프롬프트를 복사해 claude.ai에 붙여넣으세요.`) +
+    // ③ 괘 카드 (세 번째)
     `<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
       ${guaCard(sc, sc.lines, wondang, `원당효 ${wondang}효`)}
       ${guaCard(hc, hc.lines, null, '')}
