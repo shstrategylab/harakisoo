@@ -96,6 +96,74 @@ tabBar.querySelectorAll('.tab-btn').forEach((btn,i) => {
   btn.setAttribute('onclick', `switchTab('${TABS[i].id}')`);
 });
 
+// ── 64괘 현대식 키워드 DB ────────────────────────────────────
+const GUA_MODERN = {
+  1: {k:"최고의 잠재력·주도력",s:"추진력이 최고조인 상태",a:"오만함 경계, 시장 주도"},
+  2: {k:"최고의 서포터·내실경영",s:"2인자·협력이 성공하는 시기",a:"독단 금지, 조력에 집중"},
+  3: {k:"창업 초기 진통",s:"아이디어는 좋으나 시장 장벽 높음",a:"무리한 확장 금지, 파트너 확보"},
+  4: {k:"배움·멘토 찾기",s:"신입사원·학습 단계",a:"좋은 멘토를 찾아 교육받아야"},
+  5: {k:"타이밍 대기·에너지 비축",s:"준비는 끝났으나 때가 아님",a:"불안해 말고 에너지 비축"},
+  6: {k:"이해관계 충돌·소송",s:"분쟁 조짐, 직진 금물",a:"중간 타협점 찾기"},
+  7: {k:"팀 프로젝트·리더십",s:"조직을 이끌고 경쟁에 나서야",a:"리더의 공정함이 성패 가름"},
+  8: {k:"네트워킹·파트너십",s:"좋은 팀원·협력사를 만남",a:"신뢰할 만한 사람인지 선별"},
+  9: {k:"소소한 성과·기초 체력",s:"큰돈은 안 되지만 자금줄 확보",a:"기초 체력 기를 때"},
+  10: {k:"호랑이 꼬리 밟기·의전",s:"까다로운 상사·VIP 상대 중",a:"철저한 매너와 의전 필수"},
+  11: {k:"탄탄대로·전성기",s:"매출과 팀워크가 최고인 상태",a:"안주 말고 다음 먹거리 준비"},
+  12: {k:"구조조정·정체기",s:"소통이 막히고 성과가 안 남",a:"무리한 투자 멈추고 버텨야"},
+  13: {k:"크라우드펀딩·협업",s:"뜻이 같은 사람들과 대규모 협업",a:"공동 목표로 결집"},
+  14: {k:"잭팟·대박·전성기",s:"큰 부와 성과를 얻음",a:"독식 금지, 성과 분배 필수"},
+  15: {k:"로우프로파일·겸손",s:"능력이 뛰어나도 고개 숙여야",a:"겸손이 최고의 무기"},
+  16: {k:"엔터테인먼트·열정",s:"열정이 넘치고 즐거운 상태",a:"흥에 취해 계약서 잘못 찍지 말 것"},
+  17: {k:"트렌드 추종·유연함",s:"시장 대세에 맞춰가야",a:"고집 버리고 유연하게 적응"},
+  18: {k:"내부 비리·시스템 개혁",s:"오랫동안 썩은 내부 문제 터짐",a:"과감한 혁신과 개혁 필요"},
+  19: {k:"승진·시장 임박",s:"기회가 코앞에 왔고 영향력 커짐",a:"아랫사람 잘 챙겨야 롱런"},
+  20: {k:"벤치마킹·모니터링",s:"직접 행동보다 시장 관찰 시기",a:"행동보다 관찰로 인사이트 얻기"},
+  21: {k:"규제개혁·징계·결단",s:"방해물을 과감하게 제거해야",a:"법적 절차나 단호한 결단 필요"},
+  22: {k:"브랜딩·디자인",s:"겉모습을 예쁘게 꾸미는 단계",a:"알맹이 없는 마케팅은 오래 못 감"},
+  23: {k:"자산 침탈·위기·구조조정",s:"기반이 무너지는 중",a:"뼈대만 남기고 다 버려야"},
+  24: {k:"턴어라운드·복귀·부활",s:"바닥을 치고 다시 올라가는 타이밍",a:"구조조정 후 첫 매출 신호"},
+  25: {k:"순리·원칙 준수",s:"잔머리 쓰지 말고 원칙대로",a:"예상치 못한 리스크 대비"},
+  26: {k:"포트폴리오 확장·역량 축적",s:"실력과 자금이 엄청나게 쌓임",a:"이제 큰 투자 단행해도 좋은 시기"},
+  27: {k:"피드백 관리·건강",s:"내가 내뱉는 말과 들이는 것 조심",a:"설화와 식습관·정보 모두 조심"},
+  28: {k:"과부하·번아웃",s:"대들보가 휘어질 정도로 부담 큼",a:"업무 위임하거나 휴식 취해야"},
+  29: {k:"연쇄 위기·멘붕·생존",s:"첩첩산중의 위기",a:"잔꾀 버리고 정공법으로 한 단계씩"},
+  30: {k:"네트워크·플랫폼 의존",s:"혼자 독불장군으로 못 삼",a:"대기업·플랫폼에 붙어야 빛남"},
+  31: {k:"감성마케팅·교감·만남",s:"마음을 움직이는 공감이 통하는 시기",a:"이성적 논리보다 감성 접근"},
+  32: {k:"지속가능 경영·꾸준함",s:"반짝 스타보다 꾸준함이 무기",a:"루틴 유지, 초심 잃지 말 것"},
+  33: {k:"전략적 엑시트·후퇴",s:"지금은 사표 쓰거나 사업 접을 때",a:"더러워서 피하는 전략적 후퇴"},
+  34: {k:"멧돼지 돌격·오버페이스",s:"힘이 넘치지만 무모함",a:"고립될 수 있으니 속도 조절"},
+  35: {k:"초고속 승진·스케일업",s:"주가가 수직 상승하는 시기",a:"물 들어올 때 노 저어야"},
+  36: {k:"스텔스 모드·내공 쌓기",s:"내 능력을 감춰야 함",a:"시기 질투 상사 밑에서 서바이벌"},
+  37: {k:"재택근무·내부 단속",s:"밖으로 영업보다 내부 인력 챙길 때",a:"집안 단속, 내부 인센티브"},
+  38: {k:"부서 갈등·동상이몽",s:"동업자와 의견이 안 맞음",a:"공통의 작은 이익부터 조율"},
+  39: {k:"폭설 고립·장애물",s:"전방에 장애물이 너무 많음",a:"무리 말고 우회로 또는 선배 도움"},
+  40: {k:"리스크 해소·규제 완화",s:"꼬였던 계약이 풀림",a:"밀린 숙제 빨리 처리할 때"},
+  41: {k:"R&D 투자·미래를 위한 손실",s:"지금 손해보더라도 미래 투자",a:"단기 손해, 장기 성장"},
+  42: {k:"영업이익 흑자·확장",s:"위에서 밀어주고 아래서 당겨줌",a:"신규 투자·확장 적극 검토"},
+  43: {k:"과단성 있는 결단·정리",s:"썩은 살을 도려내야 할 때",a:"악성 재고·문제 직원 결단력 있게 정리"},
+  44: {k:"스파이 유입·유혹",s:"겉보기에 조건이 너무 좋은 계약",a:"속임수 있으니 주의"},
+  45: {k:"플랫폼·인재 영입",s:"사람과 돈이 몰려드는 핫플",a:"안전사고(보안) 예방 필수"},
+  46: {k:"계단식 성장·우상향",s:"매달 매출이 꾸준히 우상향",a:"화려하진 않지만 안정적 성장"},
+  47: {k:"자금 경색·고립무원",s:"돈줄이 막히고 발언권도 잃음",a:"말 아끼고 신용 지키며 버텨야"},
+  48: {k:"공공재·플랫폼 비즈니스",s:"우물처럼 아낌없이 주는 모델",a:"시스템 관리가 핵심"},
+  49: {k:"피벗·디지털 전환",s:"기존 비즈니스 모델 갈아엎어야",a:"혁신의 적기"},
+  50: {k:"M&A·3자 협력·균형",s:"삼각 편대의 균형이 완벽",a:"기획-개발-마케팅 균형 유지"},
+  51: {k:"어닝쇼크·시장 충격",s:"청천벽력 같은 뉴스가 터짐",a:"리더가 중심 잡으면 오히려 기회"},
+  52: {k:"스톱·현상 유지",s:"아무것도 하지 말고 현상 유지",a:"매매 중단, 동결이 이득"},
+  53: {k:"정규직 전환·단계별 진행",s:"순서 밟아 서서히 진행",a:"속도위반하면 계약 파기"},
+  54: {k:"절차 위반·편법",s:"순서가 뒤바뀐 계약·결혼",a:"단기 이익은 있으나 끝이 안 좋음"},
+  55: {k:"정점의 화려함·피크",s:"매출 최고조, 오늘이 피크",a:"내일부터 내려갈 준비 해야"},
+  56: {k:"해외 출장·프리랜서·이동",s:"정착 못 하고 떠도는 상태",a:"계약 관계 명확히 할 것"},
+  57: {k:"스며드는 마케팅·침투",s:"강압 말고 여론을 부드럽게 설득",a:"침투식으로 성공"},
+  58: {k:"감정 노동·협상 타결",s:"미팅 분위기는 좋으나 실속 없을 수",a:"서류 꼭 챙길 것"},
+  59: {k:"조직 갈등 해소·융합",s:"흩어졌던 마음을 하나로 모으는 시기",a:"워크숍·비전 선포 필요"},
+  60: {k:"예산 통제·가이드라인",s:"방만한 경영 줄이고 통제해야",a:"지출 가이드라인 세우기"},
+  61: {k:"진정성 마케팅·신뢰",s:"진심은 통한다",a:"두터운 신뢰 바탕으로 브랜딩"},
+  62: {k:"디테일 챙기기·소과",s:"큰일은 못 벌림",a:"오탈자·영수증 등 사소한 실수 막기"},
+  63: {k:"완벽한 세팅·완성",s:"모든 시스템이 완공됨",a:"현상 유지와 노후화 방지에 집중"},
+  64: {k:"오픈 베타·미완성",s:"99% 완료, 마지막 점검 남음",a:"끝날 때까지 끝난 게 아님"},
+};
+
 // ── 안내 박스 ─────────────────────────────────────────────
 function infoBox(text) {
   return `<div style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:.83rem;color:var(--text-muted);line-height:1.8;">${text}</div>`;
@@ -250,6 +318,7 @@ function timelineListHtml(tl, birthYear) {
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:1rem;font-weight:800;color:${isCur?'var(--accent-light)':'var(--text)'};">${guaInfo.name||t.gua+'번괘'}</div>
           <div style="font-size:.7rem;color:var(--text-muted);">${t.gua}번괘 ${t.yaoPos}효</div>
+          ${GUA_MODERN[t.gua] ? `<div style="font-size:.68rem;margin-top:3px;padding:2px 7px;border-radius:12px;background:rgba(124,58,237,.1);color:var(--accent-light);display:inline-block;">${GUA_MODERN[t.gua].k}</div>` : ''}
         </div>
       </div>
 
@@ -422,13 +491,21 @@ async function main() {
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div>
           <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:4px;">타고난 기질 (선천괘 · 인생 전반)</p>
-          <p style="font-size:.95rem;font-weight:700;margin-bottom:4px;">${sc.name} — <span style="color:${wondangInfo.color};">${wondangInfo.label}</span></p>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+            <p style="font-size:.95rem;font-weight:700;">${sc.name} — <span style="color:${wondangInfo.color};">${wondangInfo.label}</span></p>
+            ${GUA_MODERN[sc.guaNo] ? `<span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(124,58,237,.12);color:var(--accent-light);">${GUA_MODERN[sc.guaNo].k}</span>` : ''}
+          </div>
+          ${GUA_MODERN[sc.guaNo] ? `<p style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;">지금 상태: ${GUA_MODERN[sc.guaNo].s} · 핵심 행동: ${GUA_MODERN[sc.guaNo].a}</p>` : ''}
           <p style="font-size:.84rem;color:var(--text-muted);line-height:1.75;">${sc.practical || sc.dansa || ''}</p>
           <p style="font-size:.78rem;color:var(--text-muted);margin-top:6px;padding-left:10px;border-left:2px solid ${wondangInfo.color};">${wondangMean}</p>
         </div>
         <div style="border-top:1px solid var(--border);padding-top:14px;">
           <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:4px;">맺어지는 결실 (후천괘 · 인생 후반)</p>
-          <p style="font-size:.95rem;font-weight:700;margin-bottom:4px;">${hc.name}</p>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+            <p style="font-size:.95rem;font-weight:700;">${hc.name}</p>
+            ${GUA_MODERN[hc.guaNo] ? `<span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:rgba(129,140,248,.12);color:#818cf8;">${GUA_MODERN[hc.guaNo].k}</span>` : ''}
+          </div>
+          ${GUA_MODERN[hc.guaNo] ? `<p style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;">앞으로의 방향: ${GUA_MODERN[hc.guaNo].s} · 전략: ${GUA_MODERN[hc.guaNo].a}</p>` : ''}
           <p style="font-size:.84rem;color:var(--text-muted);line-height:1.75;">${hc.practical || hc.dansa || ''}</p>
         </div>
         <div style="border-top:1px solid var(--border);padding-top:14px;">
@@ -498,6 +575,14 @@ async function main() {
 태어날 때부터 타고난 기질·재능·인생 전반(약 40세 이전)의 큰 흐름을 나타냅니다. 바꿀 수 없는 본래의 성품과 이 생에서 주어진 과제가 담겨 있습니다.<br><br>
 <strong style="color:var(--text);">원당효(元堂爻)란?</strong><br>
 선천괘의 6개 효(爻) 중 나의 핵심 에너지가 집중된 자리입니다. 가장 중요한 효로, 인생의 주된 기질과 강점을 읽는 핵심 지점입니다.`) +
+    (GUA_MODERN[sc.guaNo] ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+      <span style="font-size:.78rem;padding:3px 12px;border-radius:20px;background:rgba(124,58,237,.15);color:var(--accent-light);font-weight:600;">${GUA_MODERN[sc.guaNo].k}</span>
+      <span style="font-size:.76rem;color:var(--text-muted);">현재 상태: ${GUA_MODERN[sc.guaNo].s}</span>
+    </div>
+    <div style="padding:10px 14px;background:rgba(234,179,8,.06);border-radius:8px;border-left:3px solid var(--gold);margin-bottom:14px;">
+      <p style="font-size:.7rem;color:var(--gold);margin-bottom:3px;">핵심 행동 지침</p>
+      <p style="font-size:.85rem;line-height:1.7;">${GUA_MODERN[sc.guaNo].a}</p>
+    </div>` : '') +
     detailCard(sc, sc.lines, wondang, wondangYao, `원당효(元堂爻) · ${wondang}효`) +
     `<div class="card" style="margin-top:14px;border-left:3px solid ${wondangInfo.color};">
       <p style="font-size:.68rem;color:${wondangInfo.color};margin-bottom:8px;">원당효 위치 해석 — ${wondangInfo.label}</p>
@@ -508,6 +593,118 @@ async function main() {
         이 사람의 핵심 에너지가 집중되는 인생의 주요 국면을 가리킵니다.
       </p>
     </div>` +
+    // ── ② 득위·중·응 분석 카드
+    (()=>{
+      const lines = sc.lines || [];
+      const deukwi=[], silwi=[];
+      lines.forEach((v,i)=>{
+        const pos=i+1, isOdd=(pos%2===1), isYang=(v===1);
+        if((isOdd&&isYang)||(!isOdd&&!isYang)) deukwi.push(pos);
+        else silwi.push(pos);
+      });
+      const wIsDeuk = deukwi.includes(wondang);
+      const jung2=lines[1], jung5=lines[4];
+      const is2Jeong=(jung2===0), is5Jeong=(jung5===1);
+      const jungItems=[{pos:2,v:jung2,jeong:is2Jeong},{pos:5,v:jung5,jeong:is5Jeong}];
+      const eungPairs=[[1,4],[2,5],[3,6]];
+      const eungItems=eungPairs.map(([a,b])=>({a,b,eung:lines[a-1]!==lines[b-1]}));
+      const wEung=eungItems.find(e=>e.a===wondang||e.b===wondang);
+      const wJeong=(wondang===2&&is2Jeong)||(wondang===5&&is5Jeong);
+      const score=(wIsDeuk?1:0)+(wJeong?1:0)+(wEung?.eung?1:0);
+
+      return `<div class="card" style="margin-top:14px;">
+        <p style="font-size:.68rem;color:var(--text-muted);margin-bottom:14px;">📐 괘 구조 분석 — 득위(得位) · 중(中) · 응(應)</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="padding:12px;background:var(--surface2);border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <p style="font-size:.78rem;font-weight:600;">① 득위(得位) — 제자리를 얻었는가</p>
+              <span style="font-size:.72rem;padding:2px 8px;border-radius:20px;background:${wIsDeuk?'rgba(74,222,128,.15)':'rgba(248,113,113,.12)'};color:${wIsDeuk?'#4ade80':'#f87171'};">원당 ${wondang}효: ${wIsDeuk?'✓ 득위':'✗ 실위'}</span>
+            </div>
+            <p style="font-size:.8rem;color:var(--text-muted);line-height:1.7;margin-bottom:6px;">홀수 자리(1·3·5효)에 양효(—), 짝수 자리(2·4·6효)에 음효(--)면 득위합니다.</p>
+            <p style="font-size:.78rem;line-height:1.6;">득위 효: <strong style="color:#4ade80;">${deukwi.length?deukwi.map(p=>p+'효').join(' · '):'없음'}</strong> &nbsp;·&nbsp; 실위 효: <strong style="color:#f87171;">${silwi.length?silwi.map(p=>p+'효').join(' · '):'없음'}</strong></p>
+            <p style="font-size:.76rem;color:var(--text-muted);margin-top:6px;">${wIsDeuk?`원당효(${wondang}효)가 득위하여 이 사람의 핵심 에너지가 안정적이고 바른 자리에 있습니다.`:`원당효(${wondang}효)가 실위하여 에너지가 다소 불안정한 자리에 있습니다. 부단한 노력으로 자리를 바로잡는 과정이 인생의 주요 과제가 됩니다.`}</p>
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:8px;">
+            <p style="font-size:.78rem;font-weight:600;margin-bottom:8px;">② 중(中) — 균형의 자리에 있는가</p>
+            <p style="font-size:.8rem;color:var(--text-muted);line-height:1.7;margin-bottom:8px;">2효(내괘 중앙)와 5효(외괘 중앙)는 치우치지 않는 균형을 상징합니다. 2효가 음(--)이면, 5효가 양(—)이면 중정(中正)으로 가장 이상적입니다.</p>
+            ${jungItems.map(j=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:.78rem;">${j.pos}효 (${j.pos===2?'내괘':'외괘'} 중앙) — ${j.v===1?'양효(—)':'음효(--)'}${j.pos===wondang?' <span style="color:var(--gold);">← 원당효</span>':''}</span>
+              <span style="font-size:.72rem;padding:2px 8px;border-radius:20px;background:${j.jeong?'rgba(74,222,128,.15)':'rgba(234,179,8,.12)'};color:${j.jeong?'#4ade80':'var(--gold)'};">${j.jeong?'✓ 중정(中正)':'△ 중(中)'}</span>
+            </div>`).join('')}
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:8px;">
+            <p style="font-size:.78rem;font-weight:600;margin-bottom:8px;">③ 응(應) — 짝을 이루어 호응하는가</p>
+            <p style="font-size:.8rem;color:var(--text-muted);line-height:1.7;margin-bottom:8px;">1↔4효, 2↔5효, 3↔6효가 음양으로 서로 다르면 호응합니다. 호응하면 두 에너지가 소통하고, 불응하면 갈등이 생깁니다.</p>
+            ${eungItems.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:.78rem;">${e.a}효(${lines[e.a-1]===1?'양':'음'}) ↔ ${e.b}효(${lines[e.b-1]===1?'양':'음'})${(e.a===wondang||e.b===wondang)?' <span style="color:var(--gold);">← 원당효 포함</span>':''}</span>
+              <span style="font-size:.72rem;padding:2px 8px;border-radius:20px;background:${e.eung?'rgba(74,222,128,.15)':'rgba(248,113,113,.12)'};color:${e.eung?'#4ade80':'#f87171'};">${e.eung?'✓ 호응':'✗ 불응'}</span>
+            </div>`).join('')}
+            ${wEung?`<p style="font-size:.76rem;color:var(--text-muted);margin-top:6px;">${wEung.eung?`원당효(${wondang}효)가 짝 효와 호응합니다. 인생에서 좋은 협력자를 만나거나 내외의 에너지가 잘 소통하는 구조입니다.`:`원당효(${wondang}효)가 짝 효와 불응합니다. 협력 관계에서 갈등이 생기기 쉽고, 독자적으로 문제를 해결해야 하는 상황이 자주 찾아옵니다.`}</p>`:''}
+          </div>
+          <div style="padding:10px 14px;background:rgba(124,58,237,.06);border-radius:8px;border-left:3px solid var(--accent);">
+            <p style="font-size:.72rem;color:var(--accent-light);margin-bottom:4px;">괘 구조 종합</p>
+            <p style="font-size:.85rem;line-height:1.75;">${score===3?`득위·중정·응 세 조건을 모두 만족합니다. 원당효(${wondang}효)가 가장 안정적이고 이상적인 구조에 있습니다.`:score===2?`세 조건 중 두 가지를 만족합니다. 원당효(${wondang}효)의 에너지가 대체로 안정적인 구조에 있습니다.`:score===1?`세 조건 중 한 가지를 만족합니다. 원당효(${wondang}효)의 에너지를 발휘하는 데 노력과 돌파가 필요한 구조입니다.`:`득위·중·응 세 조건을 모두 만족하지 않습니다. 원당효(${wondang}효)가 도전적인 자리에 있으며, 이 불안정함을 극복해 나가는 것이 인생의 핵심 과제입니다.`}</p>
+          </div>
+        </div>
+      </div>`;
+    })() +
+    // ── ③ 변괘(지괘) 분석 카드
+    (()=>{
+      const scLines = sc.lines || [];
+      const changedLines = scLines.map((v, i) => i === wondang - 1 ? 1 - v : v);
+      let jiGuaNo = null;
+      const guaLinesMap = Harakisu.GUA_LINES;
+      for (const [no, gl] of Object.entries(guaLinesMap)) {
+        if (gl.every((v, i) => v === changedLines[i])) {
+          jiGuaNo = Number(no);
+          break;
+        }
+      }
+      if (!jiGuaNo) return '';
+      const jiInfo   = Harakisu.DB.dansa?.[jiGuaNo] || Harakisu.DB.dansa?.[String(jiGuaNo)] || {};
+      const jiYaoAll = Harakisu.DB.yao?.[jiGuaNo]   || Harakisu.DB.yao?.[String(jiGuaNo)]   || {};
+      const jiYao    = jiYaoAll.lines?.[wondang]     || jiYaoAll.lines?.[String(wondang)]     || {};
+      return `<div class="card" style="margin-top:14px;border-color:var(--gold);">
+        <p style="font-size:.68rem;color:var(--gold);margin-bottom:14px;letter-spacing:.05em;">🔀 변괘(變卦) · 지괘(之卦) — 미래 방향</p>
+        <p style="font-size:.78rem;color:var(--text-muted);line-height:1.7;margin-bottom:16px;">
+          원당효(${wondang}효)의 음양이 뒤바뀌면 새로운 괘가 됩니다. 이것이 <strong style="color:var(--text);">지괘(之卦)</strong>로,
+          선천괘(현재 기질)가 앞으로 어떤 방향으로 흘러갈 것인지를 보여주는 미래의 그림입니다.
+        </p>
+        <div style="display:flex;gap:24px;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <p style="font-size:.65rem;color:var(--text-muted);margin-bottom:6px;">선천괘 (현재)</p>
+            ${Harakisu.renderYao(scLines, wondang, 'sm')}
+            <p style="font-size:.8rem;font-weight:700;margin-top:6px;">${sc.name}</p>
+          </div>
+          <div style="font-size:1.4rem;color:var(--gold);align-self:center;">→</div>
+          <div style="text-align:center;">
+            <p style="font-size:.65rem;color:var(--text-muted);margin-bottom:6px;">지괘 (미래 방향)</p>
+            ${Harakisu.renderYao(changedLines, wondang, 'sm')}
+            <p style="font-size:.8rem;font-weight:700;margin-top:6px;color:var(--gold);">${jiInfo.name || jiGuaNo+'번괘'}</p>
+            ${GUA_MODERN[jiGuaNo] ? `<p style="font-size:.68rem;padding:2px 7px;border-radius:12px;background:rgba(234,179,8,.1);color:var(--gold);margin-top:4px;display:inline-block;">${GUA_MODERN[jiGuaNo].k}</p>` : ''}
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:12px;">
+          <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:6px;">지괘 괘사 — 미래의 전체 흐름</p>
+          <p style="font-size:.88rem;line-height:1.8;">${jiInfo.dansa || ''}</p>
+          ${jiInfo.practical ? `<p style="font-size:.82rem;color:var(--accent-light);margin-top:6px;line-height:1.7;">💡 ${jiInfo.practical}</p>` : ''}
+        </div>
+        ${jiYao.text_ko ? `
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:12px;">
+          <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:6px;">지괘 ${wondang}효 효사 — 변화의 구체적 메시지</p>
+          <p style="font-weight:600;font-size:.9rem;margin-bottom:6px;">${jiYao.text_ko}</p>
+          <p style="font-size:.82rem;color:var(--text-muted);line-height:1.75;">${jiYao.comment_ko || ''}</p>
+        </div>` : ''}
+        <div style="padding:10px 14px;background:rgba(234,179,8,.06);border-radius:8px;border-left:3px solid var(--gold);">
+          <p style="font-size:.7rem;color:var(--gold);margin-bottom:4px;">📖 변괘의 원리</p>
+          <p style="font-size:.78rem;color:var(--text-muted);line-height:1.7;">
+            하락이수에서 원당효는 핵심 에너지 자리이면서 동시에 동효(動爻, 움직이는 효)입니다.
+            이 효가 변하면 선천괘 전체의 흐름이 새로운 방향을 가리키게 됩니다.
+            지괘는 "이 기질을 가진 사람이 인생을 어떻게 살아가다 보면 어디에 도달하는가"를 보여줍니다.
+          </p>
+        </div>
+      </div>`;
+    })() +
     miniPromptCard(
       '더 깊은 기질 분석이 필요하신가요?',
       `${sc.name}(${sc.guaNo}번괘)과 원당효 ${wondang}효를 바탕으로, 이 괘를 타고난 사람의 구체적인 강점·약점·인생 과제를 Claude에게 직접 물어볼 수 있습니다.`
@@ -546,6 +743,14 @@ async function main() {
     infoBox(`<strong style="color:var(--text);">후천괘(後天卦)란?</strong><br>
 살면서 경험과 노력으로 만들어지는 인생 후반(약 40세 이후)의 흐름입니다. 선천괘가 타고난 씨앗이라면, 후천괘는 그 씨앗이 자라 맺은 열매의 모습입니다.<br><br>
 선천괘와 같은 괘가 나오면 전·후반이 일관된 인생이고, 다른 괘가 나오면 인생 후반에 새로운 전환이 찾아옴을 뜻합니다.`) +
+    (GUA_MODERN[hc.guaNo] ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+      <span style="font-size:.78rem;padding:3px 12px;border-radius:20px;background:rgba(129,140,248,.15);color:#818cf8;font-weight:600;">${GUA_MODERN[hc.guaNo].k}</span>
+      <span style="font-size:.76rem;color:var(--text-muted);">방향: ${GUA_MODERN[hc.guaNo].s}</span>
+    </div>
+    <div style="padding:10px 14px;background:rgba(129,140,248,.06);border-radius:8px;border-left:3px solid #818cf8;margin-bottom:14px;">
+      <p style="font-size:.7rem;color:#818cf8;margin-bottom:3px;">40대 이후 핵심 전략</p>
+      <p style="font-size:.85rem;line-height:1.7;">${GUA_MODERN[hc.guaNo].a}</p>
+    </div>` : '') +
     detailCard(hc, hc.lines, null, null, '') +
     hcRelHtml +
     miniPromptCard(
