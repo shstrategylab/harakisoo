@@ -226,8 +226,11 @@ function detailCard(gua, lines, highlightPos, yao, subLabel) {
   const yaoBlock = yao?.text_ko ? `
     <div class="card" style="border-color:var(--gold);margin-top:14px;">
       <p style="font-size:.72rem;color:var(--gold);margin-bottom:8px;">${subLabel}</p>
-      <p style="font-weight:600;margin-bottom:6px;">${yao.text_ko}</p>
-      <p style="color:var(--text-muted);font-size:.9rem;line-height:1.7;">${yao.comment_ko||''}</p>
+      <p style="font-weight:600;margin-bottom:10px;">${yao.text_ko}</p>
+      ${yao.keyword_tag ? `<span style="font-size:.68rem;padding:2px 10px;border-radius:20px;background:rgba(212,168,67,.15);color:var(--gold);border:1px solid rgba(212,168,67,.3);margin-bottom:10px;display:inline-block;">${yao.keyword_tag}</span>` : ''}
+      ${yao.one_line ? `<p style="font-size:.85rem;font-style:italic;color:var(--gold);margin:8px 0;line-height:1.6;">"${yao.one_line}"</p>` : ''}
+      ${yao.modern_story ? `<div style="background:rgba(212,168,67,.06);border-left:3px solid var(--gold);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;"><p style="font-size:.72rem;color:var(--gold);margin-bottom:4px;">💬 현대적 풀이</p><p style="font-size:.9rem;line-height:1.8;">${yao.modern_story}</p></div>` : ''}
+      <p style="color:var(--text-muted);font-size:.85rem;line-height:1.75;border-top:1px solid var(--border);padding-top:10px;margin-top:10px;">${yao.comment_ko||''}</p>
     </div>` : '';
 
   return `
@@ -338,8 +341,11 @@ function timelineListHtml(tl, birthYear) {
       ${yaoInfo.text_ko ? `
       <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px;">
         <p style="font-size:.68rem;color:var(--gold);margin-bottom:4px;">${t.yaoPos}효 메시지</p>
-        <p style="font-size:.85rem;font-weight:600;margin-bottom:4px;">${yaoInfo.text_ko}</p>
-        ${yaoInfo.comment_ko ? `<p style="font-size:.82rem;color:var(--text-muted);line-height:1.7;">${yaoInfo.comment_ko}</p>` : ''}
+        <p style="font-size:.85rem;font-weight:600;margin-bottom:6px;">${yaoInfo.text_ko}</p>
+        ${yaoInfo.keyword_tag ? `<span style="font-size:.65rem;padding:1px 8px;border-radius:20px;background:rgba(212,168,67,.15);color:var(--gold);border:1px solid rgba(212,168,67,.25);display:inline-block;margin-bottom:6px;">${yaoInfo.keyword_tag}</span>` : ''}
+        ${yaoInfo.one_line ? `<p style="font-size:.82rem;font-style:italic;color:var(--gold);margin:6px 0;line-height:1.6;">"${yaoInfo.one_line}"</p>` : ''}
+        ${yaoInfo.modern_story ? `<p style="font-size:.82rem;color:var(--text);line-height:1.75;background:rgba(212,168,67,.06);border-left:2px solid var(--gold);padding:8px 12px;border-radius:0 6px 6px 0;margin:6px 0;">${yaoInfo.modern_story}</p>` : ''}
+        ${yaoInfo.comment_ko ? `<p style="font-size:.8rem;color:var(--text-muted);line-height:1.7;margin-top:6px;">${yaoInfo.comment_ko}</p>` : ''}
       </div>` : ''}
 
       <!-- 주의사항 -->
